@@ -1,13 +1,7 @@
-from pathlib import Path
-
-# HTML actualizado con el script para deshabilitar campos según estado
-html_path = Path("/mnt/data/editar_actualizado.html")
-
-editar_html_con_script = """
 {% extends "base.html" %}
 {% block content %}
 <div class="container mt-4">
-  <h2>Editar Solicitud #{{ solicitud.id }}</h2>
+  <h2>Editar Solicitud #{{ solicitud.concepto }}</h2>
 
   <form method="POST" action="{{ url_for('solicitudes.editar_solicitud', solicitud_id=solicitud.id) }}">
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -192,8 +186,3 @@ editar_html_con_script = """
   });
 </script>
 {% endblock %}
-"""
-
-# Guardar
-html_path.write_text(editar_html_con_script, encoding="utf-8")
-html_path.name

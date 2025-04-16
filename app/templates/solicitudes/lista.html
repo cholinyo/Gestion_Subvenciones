@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Listado de solicitudes</h2>
+
+<a href="{{ url_for('solicitudes.nueva_solicitud') }}" class="btn btn-success mb-3">
+  + Nueva solicitud
+</a>
+
+<form method="get" class="mb-3">
+  <label for="estado" class="form-label">Filtrar por estado:</label>
+  <select name="estado" class="form-select" onchange="this.form.submit()">
+    <option value="">-- Todos --</option>
+    {% for estado in ['en_tramite', 'no_solicitada', 'solicitada', 'alegaciones', 'concedida_provisional', 'concedida', 'denegada'] %}
+      <option value="{{ estado }}" {% if estado_filtrado == estado %}selected{% endif %}>{{ estado.replace('_', ' ') | capitalize }}</option>
+    {% endfor %}
+  </select>
+</form>
+
+<table class="table table-bordered table-hover align-middle">
+  <thead class="table-light">
+    <tr>
+      <th>ID</th>
+      <th>Expediente</th>
+      <th>Concepto</th>
+      <th>Entidad</th>
+      <th>Estado</th>
+      <th>Gestor</th>
+      <th>Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for s in solicitudes %}
+      <tr class="
+          {% if s.estado.value == 'concedida' %}table-success{% endif %}
+          {% if s.estado.value == 'denegada' %}table-danger{% endif %}
+          {% if s.estado.value == 'no_solicitada' %}table-secondary{% endif %}
+          {% if s.estado.value == 'concedida_provisional' %}table-warning{% endif %}
+      ">
+        <td>{{ s.id }}</td>
+        <td>{{ s.expediente_opensea }}</td>
+        <td>{{ s.concepto }}</td>
+        <td>{{ s.entidad_id }}</td>
+        <td>{{ s.estado.value.replace('_', ' ') | capitalize }}</td>
+        <td>{{ s.gestor_responsable or '—' }}</td>
+        <td>
+          <a href="{{ url_for('solicitudes.ver_solicitud', solicitud_id=s.id) }}" class="btn btn-sm btn-outline-primary">Ver</a>
+          {% if s.estado.value not in ['concedida', 'denegada', 'no_solicitada'] %}
+            <a href="{{ url_for('solicitudes.editar_solicitud', solicitud_id=s.id) }}" class="btn btn-sm btn-outline-warning">Editar</a>
+          {% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7" class="text-center text-muted">No hay solicitudes registradas.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

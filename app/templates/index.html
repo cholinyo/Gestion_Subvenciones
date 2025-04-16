@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Inicio</title>
+</head>
+<body>
+    <h1>¡Hola, Flask con Factory Pattern!</h1>
+</body>
+</html>
+
+{% extends "base.html" %}
+
+{% block title %}Inicio{% endblock %}
+
+{% block content %}
+<div class="jumbotron">
+    <h1 class="display-4">Sistema de Gestión de Subvenciones</h1>
+    
+    {% if current_user.is_authenticated %}
+        <p class="lead">Bienvenido, {{ current_user.username }}!</p>
+        <hr class="my-4">
+        {% if current_user.role == 'admin' %}
+            <a href="{{ url_for('auth.user_management') }}" class="btn btn-primary">Gestión de Usuarios</a>
+        {% endif %}
+    {% else %}
+        <p class="lead">Por favor, inicia sesión para acceder al sistema.</p>
+        <hr class="my-4">
+        <a href="{{ url_for('auth.login') }}" class="btn btn-primary">Iniciar Sesión</a>
+        <a href="{{ url_for('auth.register') }}" class="btn btn-secondary">Registrarse</a>
+    {% endif %}
+</div>
+{% endblock %}

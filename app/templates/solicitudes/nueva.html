@@ -1,0 +1,118 @@
+from pathlib import Path
+
+nueva_html = """
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Nueva Solicitud de Subvención</h2>
+
+  <form method="POST" action="{{ url_for('solicitudes.nueva_solicitud') }}">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label>Expediente OpenSea</label>
+        <input type="text" class="form-control" name="expediente_opensea" required>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label>Expediente Subvención</label>
+        <input type="text" class="form-control" name="expediente_subvencion" required>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label>Entidad ID</label>
+        <input type="number" class="form-control" name="entidad_id" required>
+      </div>
+      <div class="col-md-8 mb-3">
+        <label>Concepto</label>
+        <input type="text" class="form-control" name="concepto" required>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label>Tipo de Fondo</label>
+      <select class="form-select" name="tipo_fondo" required>
+        <option value="">Seleccione...</option>
+        {% for tipo in ['Europeo', 'Nacional', 'Autonómico', 'Provincial', 'Otros'] %}
+        <option value="{{ tipo }}">{{ tipo }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label for="fecha_limite_presentacion" class="form-label">Fecha límite de presentación</label>
+      <input type="date" class="form-control" name="fecha_limite_presentacion" required>
+    </div>
+
+    <div class="mb-3">
+      <label>Estado</label>
+      <select name="estado" id="estado" class="form-control" required onchange="actualizarCamposEstado()">
+        <option value="">Seleccione estado...</option>
+        {% for valor, label in {
+          'en_tramite': 'En tramitación',
+          'no_solicitada': 'No solicitada',
+          'solicitada': 'Solicitada',
+          'alegaciones': 'Alegaciones/Subsanación',
+          'concedida_provisional': 'Concedida provisionalmente',
+          'concedida': 'Concedida',
+          'denegada': 'Denegada'
+        }.items() %}
+          <option value="{{ valor }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label>Motivo no solicitada</label>
+      <textarea class="form-control" name="motivo_no_solicitada" id="motivo_no_solicitada" disabled></textarea>
+    </div>
+
+    <div class="mb-3">
+      <label>Motivo denegada</label>
+      <textarea class="form-control" name="motivo_denegada" id="motivo_denegada" disabled></textarea>
+    </div>
+
+    <div class="mb-3">
+      <label>Gestor Responsable</label>
+      <input type="text" class="form-control" name="gestor_responsable" value="{{ current_user.username }}" readonly>
+    </div>
+
+    <div class="mb-3">
+      <label>Email del Gestor</label>
+      <input type="email" class="form-control" name="email_gestor" value="{{ current_user.email }}" readonly>
+    </div>
+
+    <div class="mt-4">
+      <button type="submit" class="btn btn-primary">Crear Solicitud</button>
+      <a href="{{ url_for('solicitudes.lista_solicitudes') }}" class="btn btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+<script>
+  function actualizarCamposEstado() {
+    const estado = document.getElementById("estado").value;
+    const campoMotivoNoSolicitada = document.getElementById("motivo_no_solicitada");
+    const campoMotivoDenegada = document.getElementById("motivo_denegada");
+
+    campoMotivoNoSolicitada.disabled = (estado !== "no_solicitada");
+    campoMotivoDenegada.disabled = (estado !== "denegada");
+  }
+
+  document.addEventListener("DOMContentLoaded", actualizarCamposEstado);
+</script>
+
+{% endblock %}
+"""
+
+output_path = Path("/mnt/data/nueva.html")
+output_path.write_text(nueva_html_completo.strip(), encoding="utf-8")
+output_path

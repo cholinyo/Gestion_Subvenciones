@@ -1,0 +1,74 @@
+from pathlib import Path
+
+ver_html_actualizado = """
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Detalle de Solicitud #{{ solicitud.id }}</h2>
+
+  <div class="row">
+    <div class="col-md-6"><strong>Expediente OpenSea:</strong> {{ solicitud.expediente_opensea }}</div>
+    <div class="col-md-6"><strong>Expediente Subvención:</strong> {{ solicitud.expediente_subvencion }}</div>
+  </div>
+  <div class="row mt-2">
+    <div class="col-md-4"><strong>Entidad ID:</strong> {{ solicitud.entidad_id }}</div>
+    <div class="col-md-8"><strong>Concepto:</strong> {{ solicitud.concepto }}</div>
+  </div>
+  <div class="mt-2"><strong>Tipo de Fondo:</strong> {{ solicitud.tipo_fondo }}</div>
+  <div class="row mt-2">
+    <div class="col-md-4"><strong>Importe Total:</strong> {{ solicitud.importe_total }}</div>
+    <div class="col-md-4"><strong>Subvencionado:</strong> {{ solicitud.importe_subvencionado }}</div>
+    <div class="col-md-4"><strong>Fondos Propios:</strong> {{ solicitud.fondos_propios }}</div>
+  </div>
+  <div class="row mt-2">
+    <div class="col-md-6"><strong>Fecha límite presentación:</strong> {{ solicitud.fecha_limite_presentacion }}</div>
+    <div class="col-md-6"><strong>Fecha presentación:</strong> {{ solicitud.fecha_presentacion_solicitud }}</div>
+  </div>
+  <div class="row mt-2">
+    <div class="col-md-6"><strong>Fecha resolución provisional:</strong> {{ solicitud.fecha_resolucion_provisional }}</div>
+    <div class="col-md-6"><strong>Fecha resolución definitiva:</strong> {{ solicitud.fecha_resolucion_definitiva }}</div>
+  </div>
+  <div class="mt-2"><strong>Estado:</strong> {{ solicitud.estado.name.replace("_", " ")|capitalize }}</div>
+  {% if solicitud.estado.name == 'NO_SOLICITADA' %}
+  <div class="mt-2"><strong>Motivo no solicitada:</strong> {{ solicitud.motivo_no_solicitada }}</div>
+  {% endif %}
+  {% if solicitud.estado.name == 'DENEGADA' %}
+  <div class="mt-2"><strong>Motivo denegada:</strong> {{ solicitud.motivo_denegada }}</div>
+  {% endif %}
+  <div class="row mt-2">
+    <div class="col-md-6"><strong>Gestor:</strong> {{ solicitud.gestor_responsable }}</div>
+    <div class="col-md-6"><strong>Email:</strong> {{ solicitud.email_gestor }}</div>
+  </div>
+  <div class="mt-4"><strong>Documentación:</strong>
+    <ul>
+      <li>Inicio expediente: {{ "Sí" if solicitud.doc_inicio_expediente else "No" }}</li>
+      <li>Informe técnico: {{ "Sí" if solicitud.doc_informe_tecnico else "No" }}</li>
+      <li>Propuesta JGL: {{ "Sí" if solicitud.doc_propuesta_jgl else "No" }}</li>
+      <li>Ficha captación: {{ "Sí" if solicitud.doc_ficha_captacion else "No" }}</li>
+    </ul>
+  </div>
+
+  <hr>
+  <h5>Observaciones</h5>
+  {% if solicitud.observaciones %}
+  <ul>
+    {% for observacion in solicitud.observaciones.order_by(ObservacionSolicitud.fecha.desc()).all() %}
+    <li><strong>{{ observacion.fecha.strftime('%d/%m/%Y %H:%M') }}</strong> - {{ observacion.usuario.username }}:
+      {{ observacion.texto }}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No hay observaciones registradas.</p>
+  {% endif %}
+
+  <div class="mt-4">
+    <a href="{{ url_for('solicitudes.editar_solicitud', solicitud_id=solicitud.id) }}" class="btn btn-primary">Editar</a>
+    <a href="{{ url_for('solicitudes.lista_solicitudes') }}" class="btn btn-secondary">Volver</a>
+  </div>
+</div>
+{% endblock %}
+"""
+
+output_path = Path("/mnt/data/ver_actualizado.html")
+output_path.write_text(ver_html_actualizado.strip(), encoding="utf-8")
+output_path

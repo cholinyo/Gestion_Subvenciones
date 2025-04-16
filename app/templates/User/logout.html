@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Cierre de Sesión{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+            <h2>Has cerrado sesión</h2>
+            <p>Gracias por usar nuestra aplicación.</p>
+            <a href="{{ url_for('auth.login') }}" class="btn btn-primary">Volver a iniciar sesión</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

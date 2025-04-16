@@ -1,0 +1,47 @@
+# Pruebas Funcionales - Gestión de Solicitudes de Subvención
+
+## 1. Creación de solicitud
+- [ ] Acceder a **Solicitudes de Subvención** desde el menú principal.
+- [ ] Hacer clic en **+ Nueva solicitud**.
+- [ ] Rellenar los campos obligatorios:
+  - Expediente OpenSea
+  - Expediente Subvención
+  - Entidad ID
+  - Concepto
+  - Tipo de fondo
+- [ ] Crear solicitud y comprobar redirección a la edición.
+
+## 2. Edición básica y guardado
+- [ ] Introducir importes económicos y observaciones.
+- [ ] Marcar documentación requerida.
+- [ ] Guardar cambios.
+- [ ] Verificar mensaje de confirmación.
+
+## 3. Bloqueo por estado
+- [ ] Cambiar el estado a `concedida`, `denegada` o `no_solicitada`.
+- [ ] Guardar.
+- [ ] Volver a editar y verificar que los campos están bloqueados.
+
+## 4. Validaciones de cambio de estado
+- [ ] Intentar cambiar a `solicitada` sin documentación → mostrar errores.
+- [ ] Completar documentación e importes → permitir cambio.
+- [ ] Intentar pasar a `concedida_provisional`, `concedida` o `denegada` sin haber estado en `solicitada` → mostrar error.
+
+## 5. Historial y observaciones
+- [ ] Cambiar estado varias veces → comprobar entradas en historial.
+- [ ] Añadir observaciones → comprobar fecha y autor.
+- [ ] Visualizar historial como línea de tiempo.
+
+## 6. Vista resumen
+- [ ] Acceder a `/solicitudes`.
+- [ ] Usar el filtro por estado.
+- [ ] Comprobar colores por estado:
+  - `concedida` → verde
+  - `denegada` → rojo
+  - `no_solicitada` → gris
+  - `concedida_provisional` → amarillo
+- [ ] Acceder a "Ver" y "Editar" desde la tabla.
+
+## 7. Control de acceso y usuarios deshabilitados
+- [ ] Deshabilitar usuario desde `/auth/users`.
+- [ ] Intentar iniciar sesión con usuario deshabilitado → mostrar aviso y denegar acceso.

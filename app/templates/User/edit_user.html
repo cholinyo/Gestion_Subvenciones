@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Editar Usuario{% endblock %}
+
+{% block content %}
+<h2 class="my-4">Editar Usuario</h2>
+<form method="POST" action="{{ url_for('auth.edit_user', user_id=user.id) }}">
+    <div class="mb-3">
+        <label for="username" class="form-label">Nombre de Usuario</label>
+        <input type="text" name="username" id="username" class="form-control" value="{{ user.username }}" required>
+    </div>
+    <div class="mb-3">
+        <label for="email" class="form-label">Correo Electrónico</label>
+        <input type="email" name="email" id="email" class="form-control" value="{{ user.email }}" required>
+    </div>
+    <div class="mb-3">
+        <label for="role" class="form-label">Rol</label>
+        <select name="role" class="form-control">
+            <option value="admin" {% if user.role == UserRole.ADMIN %}selected{% endif %}>Administrador</option>
+            <option value="gestor" {% if user.role == UserRole.GESTOR %}selected{% endif %}>Gestor</option>
+            <option value="consulta" {% if user.role == UserRole.CONSULTA %}selected{% endif %}>Consulta</option>
+          </select>
+    </div>
+    <div class="form-check mb-3">
+        <input type="checkbox" name="active" id="active" class="form-check-input" {% if user.active %}checked{% endif %}>
+        <label for="active" class="form-check-label">Activo</label>
+    </div>
+    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+    <a href="{{ url_for('auth.user_management') }}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}

@@ -3,6 +3,13 @@
 <div class="container mt-4">
   <h2>Editar Solicitud #{{ solicitud.concepto }}</h2>
 
+  {% if solicitud.bloqueada %}
+  <div class="alert alert-warning d-inline-flex align-items-center" role="alert">
+    <span class="badge bg-warning text-dark me-2">Bloqueada</span>
+    Esta solicitud no se puede modificar porque está en estado <strong>{{ solicitud.estado.name|replace('_', ' ')|capitalize }}</strong>.
+  </div>
+  {% endif %}
+
   <form method="POST" action="{{ url_for('solicitudes.editar_solicitud', solicitud_id=solicitud.id) }}">
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -12,177 +19,229 @@
     {% endif %}
     {% endwith %}
 
-    <div class="row">
-      <div class="col-md-6 mb-3">
-        <label>Expediente OpenSea</label>
-        <input type="text" class="form-control" name="expediente_opensea" value="{{ solicitud.expediente_opensea }}">
+    {% set bloqueado = solicitud.bloqueada %}
+
+    <!-- Datos generales -->
+    <h4 class="mt-4"><i class="bi bi-info-circle-fill me-2"></i>Datos generales</h4>
+    <div class="card p-3 shadow-sm border-start border-4 border-primary-subtle mb-4">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label>Expediente OpenSea</label>
+          <input type="text" class="form-control" name="expediente_opensea" value="{{ solicitud.expediente_opensea }}" {% if bloqueado %}readonly disabled{% endif %}>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <label>Expediente Subvención</label>
+          <input type="text" class="form-control" name="expediente_subvencion" value="{{ solicitud.expediente_subvencion }}" {% if bloqueado %}readonly disabled{% endif %}>
+        </div>
       </div>
 
-      <div class="col-md-6 mb-3">
-        <label>Expediente Subvención</label>
-        <input type="text" class="form-control" name="expediente_subvencion" value="{{ solicitud.expediente_subvencion }}">
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <label>Entidad ID</label>
+          <input type="number" class="form-control" name="entidad_id" value="{{ solicitud.entidad_id }}" {% if bloqueado %}readonly disabled{% endif %}>
+        </div>
+        <div class="col-md-8 mb-3">
+          <label>Concepto</label>
+          <input type="text" class="form-control" name="concepto" value="{{ solicitud.concepto }}" {% if bloqueado %}readonly disabled{% endif %}>
+        </div>
       </div>
-    </div>
 
-    <div class="row">
-      <div class="col-md-4 mb-3">
-        <label>Entidad ID</label>
-        <input type="number" class="form-control" name="entidad_id" value="{{ solicitud.entidad_id }}">
-      </div>
-      <div class="col-md-8 mb-3">
-        <label>Concepto</label>
-        <input type="text" class="form-control" name="concepto" value="{{ solicitud.concepto }}">
-      </div>
-    </div>
-
-    <div class="mb-3">
-      <label>Tipo de Fondo</label>
-      <select class="form-select" name="tipo_fondo">
-        {% for tipo in ['Europeo', 'Nacional', 'Autonómico', 'Provincial', 'Otros'] %}
-        <option value="{{ tipo }}" {% if solicitud.tipo_fondo==tipo %}selected{% endif %}>{{ tipo }}</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <div class="row">
-      <div class="col-md-4 mb-3">
-        <label>Importe Total</label>
-        <input type="number" step="0.01" class="form-control" name="importe_total" value="{{ solicitud.importe_total }}">
-      </div>
-      <div class="col-md-4 mb-3">
-        <label>Importe Subvencionado</label>
-        <input type="number" step="0.01" class="form-control" name="importe_subvencionado" value="{{ solicitud.importe_subvencionado }}">
-      </div>
-      <div class="col-md-4 mb-3">
-        <label>Fondos Propios</label>
-        <input type="number" step="0.01" class="form-control" name="fondos_propios" value="{{ solicitud.fondos_propios }}">
-      </div>
-    </div>
-
-    <div class="row">
       <div class="mb-3">
-        <label for="fecha_limite_presentacion" class="form-label">Fecha límite de presentación</label>
-        <input type="date" class="form-control" name="fecha_limite_presentacion" id="fecha_limite_presentacion"
-          value="{{ solicitud.fecha_limite_presentacion.strftime('%Y-%m-%d') if solicitud.fecha_limite_presentacion else '' }}"
-          {% if readonly %}readonly{% endif %}>
+        <label>Tipo de Fondo</label>
+        <select class="form-select" name="tipo_fondo" {% if bloqueado %}disabled{% endif %}>
+          {% for tipo in ['Europeo', 'Nacional', 'Autonómico', 'Provincial', 'Otros'] %}
+          <option value="{{ tipo }}" {% if solicitud.tipo_fondo==tipo %}selected{% endif %}>{{ tipo }}</option>
+          {% endfor %}
+        </select>
       </div>
-      <div class="col-md-4 mb-3">
-        <label>Fecha Presentación</label>
-        <input type="date" class="form-control" name="fecha_presentacion_solicitud"
-          value="{{ solicitud.fecha_presentacion_solicitud }}">
+
+      <div class="mb-3">
+        <label>Estado</label>
+        <select name="estado" id="estado" class="form-control" {% if bloqueado %}disabled{% endif %}>
+          {% for valor, label in {
+          'en_tramite': 'En tramitación',
+          'no_solicitada': 'No solicitada',
+          'solicitada': 'Solicitada',
+          'alegaciones': 'Alegaciones/Subsanación',
+          'concedida_provisional': 'Concedida provisionalmente',
+          'concedida': 'Concedida',
+          'denegada': 'Denegada'
+          }.items() %}
+          <option value="{{ valor }}" {% if solicitud.estado.value==valor %} selected {% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
       </div>
-      <div class="col-md-4 mb-3">
-        <label>Fecha Resolución Provisional</label>
-        <input type="date" class="form-control" name="fecha_resolucion_provisional"
-          value="{{ solicitud.fecha_resolucion_provisional }}">
-      </div>
-      <div class="col-md-4 mb-3">
-        <label>Fecha Resolución Definitiva</label>
-        <input type="date" class="form-control" name="fecha_resolucion_definitiva"
-          value="{{ solicitud.fecha_resolucion_definitiva }}">
-      </div>
     </div>
 
-    <div class="mb-3">
-      <label>Estado</label>
-      <select name="estado" id="estado" class="form-control">
-        {% for valor, label in {
-        'en_tramite': 'En tramitación',
-        'no_solicitada': 'No solicitada',
-        'solicitada': 'Solicitada',
-        'alegaciones': 'Alegaciones/Subsanación',
-        'concedida_provisional': 'Concedida provisionalmente',
-        'concedida': 'Concedida',
-        'denegada': 'Denegada'
-        }.items() %}
-        <option value="{{ valor }}" {% if solicitud.estado.value==valor %} selected {% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
+<!-- Fechas clave -->
+<h4 class="mt-4"><i class="bi bi-calendar-event me-2 text-danger"></i>Fechas clave</h4>
+<div class="card p-3 shadow-sm border-start border-4 border-danger-subtle mb-4">
+  <div class="row">
+    <div class="col-md-4 mb-3">
+      <label>Fecha límite de presentación</label>
+      <input type="date" class="form-control" name="fecha_limite_presentacion" value="{{ solicitud.fecha_limite_presentacion.strftime('%Y-%m-%d') if solicitud.fecha_limite_presentacion else '' }}" {% if bloqueado %}readonly disabled{% endif %}>
     </div>
+    <div class="col-md-4 mb-3">
+      <label>Fecha Presentación</label>
+      <input type="date" class="form-control" name="fecha_presentacion_solicitud" value="{{ solicitud.fecha_presentacion_solicitud }}" {% if bloqueado %}readonly disabled{% endif %}>
+    </div>
+    <div class="col-md-4 mb-3">
+      <label>Fecha Resolución Provisional</label>
+      <input type="date" class="form-control" name="fecha_resolucion_provisional" value="{{ solicitud.fecha_resolucion_provisional }}" {% if bloqueado %}readonly disabled{% endif %}>
+    </div>
+    <div class="col-md-4 mb-3">
+      <label>Fecha Resolución Definitiva</label>
+      <input type="date" class="form-control" name="fecha_resolucion_definitiva" value="{{ solicitud.fecha_resolucion_definitiva }}" {% if bloqueado %}readonly disabled{% endif %}>
+    </div>
+  </div>
+</div>
 
-    <div class="mb-3">
-      <label>Motivo no solicitada</label>
-      <textarea class="form-control" name="motivo_no_solicitada" id="motivo_no_solicitada">{{ solicitud.motivo_no_solicitada }}</textarea>
-    </div>
 
-    <div class="mb-3">
-      <label>Motivo denegada</label>
-      <textarea class="form-control" name="motivo_denegada" id="motivo_denegada">{{ solicitud.motivo_denegada }}</textarea>
+<h4 class="mt-4"><i class="bi bi-currency-euro me-2 text-success"></i>Información económica</h4>
+<div class="card p-3 shadow-sm border-start border-4 border-success-subtle mb-4">
+  <div class="row">
+    <div class="col-md-4 mb-3">
+      <label>Importe Total</label>
+      <input type="number" step="0.01" class="form-control" name="importe_total" value="{{ solicitud.importe_total }}" {% if bloqueado %}readonly disabled{% endif %}>
     </div>
+    <div class="col-md-4 mb-3">
+      <label>Importe Subvencionado</label>
+      <input type="number" step="0.01" class="form-control" name="importe_subvencionado" value="{{ solicitud.importe_subvencionado }}" {% if bloqueado %}readonly disabled{% endif %}>
+    </div>
+    <div class="col-md-4 mb-3">
+      <label>Fondos Propios</label>
+      <input type="number" step="0.01" class="form-control" name="fondos_propios" value="{{ solicitud.fondos_propios }}" {% if bloqueado %}readonly disabled{% endif %}>
+    </div>
+  </div>
+</div>
 
-    <div class="mb-3">
-      <label>Gestor Responsable</label>
-      <input type="text" class="form-control" name="gestor_responsable" value="{{ solicitud.gestor_responsable }}">
-    </div>
-    <div class="mb-3">
-      <label>Email del Gestor</label>
-      <input type="email" class="form-control" name="email_gestor" value="{{ solicitud.email_gestor }}">
-    </div>
+<!-- Documentación requerida -->
+<h4 class="mt-4"><i class="bi bi-file-earmark-text me-2 text-warning"></i>Documentación requerida</h4>
+<div class="card p-3 shadow-sm border-start border-4 border-warning-subtle mb-4">
+  <div class="form-check">
+    <input class="form-check-input" type="checkbox" name="doc_inicio_expediente" {% if solicitud.doc_inicio_expediente %}checked{% endif %} {% if bloqueado %}disabled{% endif %}>
+    <label class="form-check-label">Doc. Inicio Expediente</label>
+  </div>
+  <div class="form-check">
+    <input class="form-check-input" type="checkbox" name="doc_informe_tecnico" {% if solicitud.doc_informe_tecnico %}checked{% endif %} {% if bloqueado %}disabled{% endif %}>
+    <label class="form-check-label">Doc. Informe Técnico</label>
+  </div>
+  <div class="form-check">
+    <input class="form-check-input" type="checkbox" name="doc_propuesta_jgl" {% if solicitud.doc_propuesta_jgl %}checked{% endif %} {% if bloqueado %}disabled{% endif %}>
+    <label class="form-check-label">Doc. Propuesta JGL</label>
+  </div>
+  <div class="form-check mb-3">
+    <input class="form-check-input" type="checkbox" name="doc_ficha_captacion" {% if solicitud.doc_ficha_captacion %}checked{% endif %} {% if bloqueado %}disabled{% endif %}>
+    <label class="form-check-label">Doc. Ficha Captación</label>
+  </div>
+</div>
 
-    <h5 class="mt-4">Documentación Requerida</h5>
-    <div class="form-check">
-      <input class="form-check-input" type="checkbox" name="doc_inicio_expediente" {% if solicitud.doc_inicio_expediente %}checked{% endif %}>
-      <label class="form-check-label">Doc. Inicio Expediente</label>
-    </div>
-    <div class="form-check">
-      <input class="form-check-input" type="checkbox" name="doc_informe_tecnico" {% if solicitud.doc_informe_tecnico %}checked{% endif %}>
-      <label class="form-check-label">Doc. Informe Técnico</label>
-    </div>
-    <div class="form-check">
-      <input class="form-check-input" type="checkbox" name="doc_propuesta_jgl" {% if solicitud.doc_propuesta_jgl %}checked{% endif %}>
-      <label class="form-check-label">Doc. Propuesta JGL</label>
-    </div>
-    <div class="form-check mb-3">
-      <input class="form-check-input" type="checkbox" name="doc_ficha_captacion" {% if solicitud.doc_ficha_captacion %}checked{% endif %}>
-      <label class="form-check-label">Doc. Ficha Captación</label>
-    </div>
+<!-- Gestión -->
+<h4 class="mt-4"><i class="bi bi-person-lines-fill me-2 text-info"></i>Gestión</h4>
+<div class="card p-3 shadow-sm border-start border-4 border-info-subtle mb-4">
+  <div class="mb-3">
+    <label>Motivo no solicitada</label>
+    <textarea class="form-control" name="motivo_no_solicitada" id="motivo_no_solicitada" {% if bloqueado %}readonly disabled{% endif %}>{{ solicitud.motivo_no_solicitada }}</textarea>
+  </div>
+  <div class="mb-3">
+    <label>Motivo denegada</label>
+    <textarea class="form-control" name="motivo_denegada" id="motivo_denegada" {% if bloqueado %}readonly disabled{% endif %}>{{ solicitud.motivo_denegada }}</textarea>
+  </div>
+  <div class="mb-3">
+    <label>Gestor Responsable</label>
+    <input type="text" class="form-control" name="gestor_responsable" value="{{ solicitud.gestor_responsable }}" {% if bloqueado %}readonly disabled{% endif %}>
+  </div>
+  <div class="mb-3">
+    <label>Email del Gestor</label>
+    <input type="email" class="form-control" name="email_gestor" value="{{ solicitud.email_gestor }}" {% if bloqueado %}readonly disabled{% endif %}>
+  </div>
+</div>
 
-    <div class="mb-3">
-      <label for="observaciones" class="form-label">Añadir observación</label>
-      <textarea class="form-control" name="observaciones" rows="3"></textarea>
-    </div>
+<!-- Observaciones -->
+<div class="mb-3">
+  <label for="observaciones" class="form-label">Añadir observación</label>
+  <textarea class="form-control" name="observaciones" rows="3" {% if bloqueado %}readonly disabled{% endif %}></textarea>
+</div>
 
-    <div class="mt-4">
-      <button type="submit" class="btn btn-success">Guardar Cambios</button>
-      <a href="{{ url_for('solicitudes.lista_solicitudes') }}" class="btn btn-secondary">Cancelar</a>
-    </div>
-  </form>
-
-  {% if solicitud.observaciones %}
-  <hr>
-  <h4>Historial de observaciones</h4>
-  <ul>
+<!-- Historial de observaciones -->
+{% if solicitud.observaciones %}
+<hr>
+<h4><i class="bi bi-chat-dots me-2 text-secondary"></i>Historial de observaciones</h4>
+<div class="card p-3 shadow-sm border-start border-4 border-secondary-subtle mb-4">
+  <ul class="list-group list-group-flush">
     {% for observacion in solicitud.observaciones.order_by(ObservacionSolicitud.fecha.desc()).all() %}
-      <li><strong>{{ observacion.fecha.strftime('%d/%m/%Y %H:%M') }}</strong> - {{ observacion.usuario.username }}: {{ observacion.texto }}</li>
+      <li class="list-group-item">
+        <strong>{{ observacion.fecha.strftime('%d/%m/%Y %H:%M') }}</strong> - <em>{{ observacion.usuario.username }}</em>: {{ observacion.texto }}
+      </li>
     {% else %}
-      <li>No hay observaciones todavía.</li>
+      <li class="list-group-item">No hay observaciones todavía.</li>
     {% endfor %}
   </ul>
-  {% endif %}
+</div>
+{% endif %}
+
+<!-- Historial completo de modificaciones -->
+<h4 class="mt-5"><i class="bi bi-journal-text me-2 text-muted"></i>Historial completo de modificaciones</h4>
+<div class="card p-3 shadow-sm border-start border-4 border-muted-subtle mb-4">
+  <ul class="list-group list-group-flush">
+    {% for cambio in solicitud.historial|sort(attribute='fecha', reverse=True) %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <span>{{ cambio.descripcion }}</span>
+        <small class="text-muted">{{ cambio.fecha.strftime('%d/%m/%Y %H:%M') }}</small>
+      </li>
+    {% else %}
+      <li class="list-group-item">No hay modificaciones registradas.</li>
+    {% endfor %}
+  </ul>
+</div>
+
+<div class="mt-4">
+  <button type="submit" class="btn btn-success" {% if bloqueado %}disabled{% endif %}>Guardar Cambios</button>
+  <a href="{{ url_for('solicitudes.lista_solicitudes') }}" class="btn btn-secondary">Cancelar</a>
+</div>
+
 </div>
 
 <script>
-  function toggleMotivos() {
-    const estado = document.getElementById("estado").value;
+  document.addEventListener("DOMContentLoaded", function () {
+    const estadoSelect = document.getElementById("estado");
     const motivoNoSolicitada = document.getElementById("motivo_no_solicitada");
     const motivoDenegada = document.getElementById("motivo_denegada");
+    const form = document.querySelector("form");
 
-    if (estado === "no_solicitada") {
-      motivoNoSolicitada.removeAttribute("disabled");
-    } else {
-      motivoNoSolicitada.setAttribute("disabled", "true");
+    function actualizarCamposSegunEstado() {
+      const estado = estadoSelect.value;
+
+      if (estado === "no_solicitada") {
+        motivoNoSolicitada.removeAttribute("disabled");
+        motivoNoSolicitada.setAttribute("required", "required");
+      } else {
+        motivoNoSolicitada.setAttribute("disabled", "disabled");
+        motivoNoSolicitada.removeAttribute("required");
+      }
+
+      if (estado === "denegada") {
+        motivoDenegada.removeAttribute("disabled");
+        motivoDenegada.setAttribute("required", "required");
+      } else {
+        motivoDenegada.setAttribute("disabled", "disabled");
+        motivoDenegada.removeAttribute("required");
+      }
     }
 
-    if (estado === "denegada") {
-      motivoDenegada.removeAttribute("disabled");
-    } else {
-      motivoDenegada.setAttribute("disabled", "true");
+    if (estadoSelect) {
+      estadoSelect.addEventListener("change", actualizarCamposSegunEstado);
+      actualizarCamposSegunEstado();
     }
-  }
 
-  document.addEventListener("DOMContentLoaded", function () {
-    document.getElementById("estado").addEventListener("change", toggleMotivos);
-    toggleMotivos();
+    form.addEventListener("submit", function (e) {
+      const confirmar = confirm("¿Estás seguro de que deseas guardar los cambios?");
+      if (!confirmar) {
+        e.preventDefault();
+      }
+    });
   });
 </script>
+</div>
 {% endblock %}

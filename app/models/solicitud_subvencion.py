@@ -79,3 +79,5 @@ class SolicitudSubvencion(db.Model):
     back_populates="solicitud",
     cascade="all, delete-orphan"
     )
+
+    bloqueada = db.Column(db.Boolean, default=False)

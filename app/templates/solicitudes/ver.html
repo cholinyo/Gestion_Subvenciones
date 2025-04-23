@@ -1,94 +1,130 @@
-{% extends 'base.html' %}
-
+{% extends "base.html" %}
 {% block content %}
 <div class="container mt-4">
-  <h2>Solicitud #{{ solicitud.id }}</h2>
-  <dl class="row">
-    <dt class="col-sm-4">Expediente OpenSea</dt>
-    <dd class="col-sm-8">{{ solicitud.expediente_opensea }}</dd>
 
-    <dt class="col-sm-4">Expediente Subvención</dt>
-    <dd class="col-sm-8">{{ solicitud.expediente_subvencion }}</dd>
+  <!-- Estado y título -->
+  <h2 class="mb-3">Ver Solicitud <span class="text-primary">#{{ solicitud.concepto or '—' or '—' }}</span></h2>
+  {% set estado_color = {
+    'en_tramite': 'bg-light text-dark border',
+    'no_solicitada': 'bg-dark text-white',
+    'solicitada': 'bg-primary',
+    'alegaciones': 'bg-purple text-white',
+    'concedida_provisional': 'bg-teal text-white',
+    'concedida': 'bg-success',
+    'denegada': 'bg-danger'
+  }[solicitud.estado.value] %}
+  <div class="mb-4">
+    <span class="badge {{ estado_color }}">Estado actual: {{ solicitud.estado.name|replace('_', ' ')|capitalize }}</span>
+  </div>
 
-    <dt class="col-sm-4">Entidad ID</dt>
-    <dd class="col-sm-8">{{ solicitud.entidad_id }}</dd>
+  <!-- Datos generales -->
+  <h4 class="mt-4"><i class="bi bi-info-circle-fill me-2"></i>Datos generales</h4>
+  <div class="card p-3 shadow-sm border-start border-4 border-primary-subtle mb-4">
+    <dl class="row">
+      <dt class="col-sm-3">Expediente OpenSea</dt><dd class="col-sm-9">{{ solicitud.expediente_opensea if solicitud.expediente_opensea is not none else '—' }}</dd>
+      <dt class="col-sm-3">Expediente Subvención</dt><dd class="col-sm-9">{{ solicitud.expediente_subvencion if solicitud.expediente_subvencion is not none else '—' }}</dd>
+      <dt class="col-sm-3">Entidad ID</dt><dd class="col-sm-9">{{ solicitud.entidad_id if solicitud.entidad_id is not none else '—' }}</dd>
+      <dt class="col-sm-3">Concepto</dt><dd class="col-sm-9">{{ solicitud.concepto }}</dd>
+      <dt class="col-sm-3">Tipo de Fondo</dt><dd class="col-sm-9">{{ solicitud.tipo_fondo }}</dd>
+      <dt class="col-sm-3">Estado</dt><dd class="col-sm-9">{{ solicitud.estado.name|replace('_', ' ')|capitalize }}</dd>
+          {% if solicitud.observaciones %}
+      
+      {% endif %}
+    </dl>
+  </div>
 
-    <dt class="col-sm-4">Concepto</dt>
-    <dd class="col-sm-8">{{ solicitud.concepto }}</dd>
+  <!-- Información económica -->
+  <h4 class="mt-4"><i class="bi bi-currency-euro me-2 text-success"></i>Información económica</h4>
+  <div class="card p-3 shadow-sm border-start border-4 border-success-subtle mb-4">
+    <dl class="row">
+      <dt class="col-sm-3">Importe Total</dt><dd class="col-sm-9">{{ solicitud.importe_total if solicitud.importe_total is not none else '—' }} €</dd>
+      <dt class="col-sm-3">Importe Subvencionado</dt><dd class="col-sm-9">{{ solicitud.importe_subvencionado if solicitud.importe_subvencionado is not none else '—' }} €</dd>
+      <dt class="col-sm-3">Fondos Propios</dt><dd class="col-sm-9">{{ solicitud.fondos_propios if solicitud.fondos_propios is not none else '—' }} €</dd>
+    </dl>
+  </div>
 
-    <dt class="col-sm-4">Tipo de Fondo</dt>
-    <dd class="col-sm-8">{{ solicitud.tipo_fondo }}</dd>
+  <!-- Fechas clave -->
+  <h4 class="mt-4"><i class="bi bi-calendar-event me-2 text-danger"></i>Fechas clave</h4>
+  <div class="card p-3 shadow-sm border-start border-4 border-danger-subtle mb-4">
+    <dl class="row">
+      <dt class="col-sm-3">Fecha límite de presentación</dt><dd class="col-sm-9">{{ solicitud.fecha_limite_presentacion if solicitud.fecha_limite_presentacion is not none else '—' }}</dd>
+      <dt class="col-sm-3">Fecha Presentación</dt><dd class="col-sm-9">{{ solicitud.fecha_presentacion_solicitud if solicitud.fecha_presentacion_solicitud is not none else '—' }}</dd>
+      <dt class="col-sm-3">Fecha Resol. Provisional</dt><dd class="col-sm-9">{{ solicitud.fecha_resolucion_provisional if solicitud.fecha_resolucion_provisional is not none else '—' }}</dd>
+      <dt class="col-sm-3">Fecha Resol. Definitiva</dt><dd class="col-sm-9">{{ solicitud.fecha_resolucion_definitiva if solicitud.fecha_resolucion_definitiva is not none else '—' }}</dd>
+    </dl>
+  </div>
 
-    <dt class="col-sm-4">Importe Total</dt>
-    <dd class="col-sm-8">{{ solicitud.importe_total }}</dd>
+  <!-- Documentación requerida -->
+  <h4 class="mt-4"><i class="bi bi-file-earmark-text me-2 text-warning"></i>Documentación requerida</h4>
+  <div class="card p-3 shadow-sm border-start border-4 border-warning-subtle mb-4">
+    <dl class="row">
+      <dt class="col-sm-3">Documentación</dt>
+      <dd class="col-sm-9">
+        <ul>
+          <li>Doc. Inicio Expediente: {% if solicitud.doc_inicio_expediente %}Sí{% else %}No{% endif %}</li>
+          <li>Doc. Informe Técnico: {% if solicitud.doc_informe_tecnico %}Sí{% else %}No{% endif %}</li>
+          <li>Doc. Propuesta JGL: {% if solicitud.doc_propuesta_jgl %}Sí{% else %}No{% endif %}</li>
+          <li>Doc. Ficha Captación: {% if solicitud.doc_ficha_captacion %}Sí{% else %}No{% endif %}</li>
+        </ul>
+      </dd>
+    </dl>
+  </div>
 
-    <dt class="col-sm-4">Importe Subvencionado</dt>
-    <dd class="col-sm-8">{{ solicitud.importe_subvencionado }}</dd>
+  <!-- Gestión -->
+  <h4 class="mt-4"><i class="bi bi-person-lines-fill me-2 text-info"></i>Gestión</h4>
+  <div class="card p-3 shadow-sm border-start border-4 border-info-subtle mb-4">
+    <dl class="row">
+      {% if solicitud.estado.value == 'no_solicitada' %}
+      <dt class="col-sm-3">Motivo No Solicitada</dt>
+      <dd class="col-sm-9">{{ solicitud.motivo_no_solicitada if solicitud.motivo_no_solicitada is not none else '—' }}</dd>
+      {% endif %}
+      {% if solicitud.estado.value == 'no_solicitada' %}
+      <dt class="col-sm-3">Motivo No Solicitada</dt>
+      <dd class="col-sm-9">{{ solicitud.motivo_no_solicitada if solicitud.motivo_no_solicitada is not none else '—' }}</dd>
+      {% endif %}
+      {% if solicitud.estado.value == 'denegada' %}
+      <dt class="col-sm-3">Motivo Denegada</dt>
+      <dd class="col-sm-9">{{ solicitud.motivo_denegada if solicitud.motivo_denegada is not none else '—' }}</dd>
+      {% endif %}
+      <dt class="col-sm-3">Gestor Responsable</dt><dd class="col-sm-9">{{ solicitud.gestor_responsable if solicitud.gestor_responsable is not none else '—' }}</dd>
+      <dt class="col-sm-3">Email Gestor</dt><dd class="col-sm-9">{{ solicitud.email_gestor if solicitud.email_gestor is not none else '—' }}</dd>
+    </dl>
+  </div>
 
-    <dt class="col-sm-4">Fondos Propios</dt>
-    <dd class="col-sm-8">{{ solicitud.fondos_propios }}</dd>
-
-    <dt class="col-sm-4">Estado</dt>
-    <dd class="col-sm-8">{{ solicitud.estado.name }}</dd>
-
-    <dt class="col-sm-4">Motivo no solicitada</dt>
-    <dd class="col-sm-8">{{ solicitud.motivo_no_solicitada or '-' }}</dd>
-
-    <dt class="col-sm-4">Motivo denegada</dt>
-    <dd class="col-sm-8">{{ solicitud.motivo_denegada or '-' }}</dd>
-
-    <dt class="col-sm-4">Fecha límite presentación</dt>
-    <dd class="col-sm-8">{{ solicitud.fecha_limite_presentacion }}</dd>
-
-    <dt class="col-sm-4">Fecha presentación</dt>
-    <dd class="col-sm-8">{{ solicitud.fecha_presentacion_solicitud or '-' }}</dd>
-
-    <dt class="col-sm-4">Fecha resolución provisional</dt>
-    <dd class="col-sm-8">{{ solicitud.fecha_resolucion_provisional or '-' }}</dd>
-
-    <dt class="col-sm-4">Fecha resolución definitiva</dt>
-    <dd class="col-sm-8">{{ solicitud.fecha_resolucion_definitiva or '-' }}</dd>
-
-    <dt class="col-sm-4">Gestor Responsable</dt>
-    <dd class="col-sm-8">{{ solicitud.gestor_responsable or '-' }}</dd>
-
-    <dt class="col-sm-4">Email del Gestor</dt>
-    <dd class="col-sm-8">{{ solicitud.email_gestor or '-' }}</dd>
-
-    <dt class="col-sm-4">Documentación</dt>
-    <dd class="col-sm-8">
-      <ul>
-        <li>Doc. Inicio Expediente: {{ 'Sí' if solicitud.doc_inicio_expediente else 'No' }}</li>
-        <li>Doc. Informe Técnico: {{ 'Sí' if solicitud.doc_informe_tecnico else 'No' }}</li>
-        <li>Doc. Propuesta JGL: {{ 'Sí' if solicitud.doc_propuesta_jgl else 'No' }}</li>
-        <li>Doc. Ficha Captación: {{ 'Sí' if solicitud.doc_ficha_captacion else 'No' }}</li>
-      </ul>
-    </dd>
-  </dl>
-
-  <h4 class="mt-4">Observaciones</h4>
-  {% if solicitud.observaciones %}
-  <ul>
-    {% for obs in solicitud.observaciones.order_by(ObservacionSolicitud.fecha.desc()).all() %}
-      <li><strong>{{ obs.fecha.strftime('%d/%m/%Y %H:%M') }}</strong> - {{ obs.usuario.username }}: {{ obs.texto }}</li>
+  <!-- Observaciones -->
+<h4 class="mt-4"><i class="bi bi-chat-dots me-2 text-secondary"></i>Observaciones</h4>
+<div class="card p-3 shadow-sm border-start border-4 border-secondary-subtle mb-4">
+  <ul class="list-group list-group-flush">
+    {% for observacion in solicitud.observaciones.order_by(ObservacionSolicitud.fecha.desc()).all() %}
+      <li class="list-group-item">
+        <strong>{{ observacion.fecha.strftime('%d/%m/%Y %H:%M') }}</strong> - <em>{{ observacion.usuario.username }}</em>: {{ observacion.texto if observacion.texto is not none else '—' }}
+      </li>
+    {% else %}
+      <li class="list-group-item">No hay observaciones registradas.</li>
     {% endfor %}
   </ul>
-  {% else %}
-  <p>No hay observaciones.</p>
-  {% endif %}
+</div>
 
-  <h4 class="mt-4">Historial</h4>
-  {% if solicitud.historial %}
-  <ul>
-    {% for h in solicitud.historial %}
-      <li><strong>{{ h.fecha.strftime('%d/%m/%Y %H:%M') }}</strong> - {{ h.usuario.username }}: {{ h.descripcion }}</li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p>No hay historial disponible.</p>
-  {% endif %}
+  <!-- Historial completo de modificaciones -->
+  <h4 class="mt-4"><i class="bi bi-journal-text me-2 text-muted"></i>Historial completo de modificaciones</h4>
+  <div class="card p-3 shadow-sm border-start border-4 border-muted-subtle mb-4">
+    <ul class="list-group list-group-flush">
+      {% for cambio in solicitud.historial|sort(attribute="fecha", reverse=True) %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span>{{ cambio.descripcion }}</span>
+          <small class="text-muted">{{ cambio.fecha.strftime('%d/%m/%Y %H:%M') }}</small>
+        </li>
+      {% else %}
+        <li class="list-group-item">No hay modificaciones registradas.</li>
+      {% endfor %}
+    </ul>
+  </div>
 
-  <a href="{{ url_for('solicitudes.editar_solicitud', solicitud_id=solicitud.id) }}" class="btn btn-primary">Editar</a>
-  <a href="{{ url_for('solicitudes.lista_solicitudes') }}" class="btn btn-secondary">Volver</a>
+  <!-- Botones -->
+  <div class="mt-4">
+    <a href="{{ url_for('solicitudes.lista_solicitudes') }}" class="btn btn-secondary">Volver a la lista</a>
+    <button class="btn btn-outline-primary" onclick="window.print()">Imprimir</button>
+  </div>
 </div>
 {% endblock %}
+

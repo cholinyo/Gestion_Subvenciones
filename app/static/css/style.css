@@ -58,3 +58,32 @@ body {
     margin-top: 4px;
   }
   
+  .bg-purple {
+    background-color: #6f42c1 !important;
+    color: #fff;
+  }
+  
+  .bg-teal {
+    background-color: #20c997 !important;
+    color: #fff;
+  }
+  
+  .border-primary-subtle {
+    border-color: #b6d4fe !important;
+  }
+  .border-success-subtle {
+    border-color: #c6f6d5 !important;
+  }
+  .border-danger-subtle {
+    border-color: #f8d7da !important;
+  }
+  .border-warning-subtle {
+    border-color: #fff3cd !important;
+  }
+  .border-info-subtle {
+    border-color: #cff4fc !important;
+  }
+  .border-secondary-subtle {
+    border-color: #dee2e6 !important;
+  }
+  

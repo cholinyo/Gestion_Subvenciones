@@ -24,9 +24,9 @@ def editar_solicitud(solicitud_id):
     readonly = solicitud.estado.value in estados_bloqueados
 
     if request.method == "POST" and not readonly:
-        # Guardar los campos del formulario en la instancia
         solicitud.expediente_opensea = request.form.get("expediente_opensea")
         solicitud.expediente_subvencion = request.form.get("expediente_subvencion")
+        solicitud.entidad_id = request.form.get("entidad_id")
         solicitud.concepto = request.form.get("concepto")
         solicitud.tipo_fondo = request.form.get("tipo_fondo")
 
@@ -47,31 +47,27 @@ def editar_solicitud(solicitud_id):
         solicitud.gestor_responsable = request.form.get("gestor_responsable")
         solicitud.email_gestor = request.form.get("email_gestor")
 
-        # ✅ Actualizar campos de motivos antes de cambiar el estado
         solicitud.motivo_no_solicitada = request.form.get("motivo_no_solicitada")
         solicitud.motivo_denegada = request.form.get("motivo_denegada")
 
-        # Comprobación del cambio de estado
         nuevo_estado_str = request.form.get("estado")
-        if nuevo_estado_str and nuevo_estado_str != solicitud.estado.value:
+        if nuevo_estado_str:
             try:
                 nuevo_estado = EstadoSolicitud(nuevo_estado_str)
-                errores = validate_solicitud_estado(solicitud, nuevo_estado)
-
-                if errores:
-                    for e in errores:
-                        flash(e, "danger")
-                    return render_template("solicitudes/editar.html", solicitud=solicitud, ObservacionSolicitud=ObservacionSolicitud)
-
-                descripcion = f"Estado cambiado de {solicitud.estado.value} a {nuevo_estado.value}"
+                estado_anterior = solicitud.estado
                 solicitud.estado = nuevo_estado
-                registrar_historial(solicitud, current_user, descripcion)
 
-            except ValueError:
-                flash("Estado no válido.", "danger")
+                validate_solicitud_estado(solicitud, estado_anterior=estado_anterior)
+
+                if nuevo_estado != estado_anterior:
+                    descripcion = f"Estado cambiado de {estado_anterior.value} a {nuevo_estado.value}"
+                    registrar_historial(solicitud, current_user, descripcion)
+
+            except ValueError as e:
+                solicitud.estado = estado_anterior  # Revertir si falla
+                flash(str(e), "danger")
                 return render_template("solicitudes/editar.html", solicitud=solicitud, ObservacionSolicitud=ObservacionSolicitud)
 
-        # Añadir observación si existe
         texto_observacion = request.form.get("observaciones")
         if texto_observacion:
             nueva_obs = ObservacionSolicitud(
@@ -87,7 +83,6 @@ def editar_solicitud(solicitud_id):
         return redirect(url_for("solicitudes.ver_solicitud", solicitud_id=solicitud.id))
 
     return render_template("solicitudes/editar.html", solicitud=solicitud, ObservacionSolicitud=ObservacionSolicitud)
-
 
 
 @solicitudes_bp.route("/solicitudes")

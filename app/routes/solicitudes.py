@@ -1,13 +1,14 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import current_user, login_required
+from sqlalchemy import func
+from datetime import date, datetime
+
 from app import db
-from app.models.solicitud_subvencion import SolicitudSubvencion
+from app.models.solicitud_subvencion import SolicitudSubvencion, EstadoSolicitud
 from app.models.observacion_solicitud import ObservacionSolicitud
-from app.models.solicitud_subvencion import EstadoSolicitud
 from app.utils.historial import registrar_historial
 from app.utils.validate_solicitud_estado import parse_float, validate_solicitud_estado
-from datetime import datetime
-
+from app.forms.forms import FormularioSolicitud  # Asegúrate de importar correctamente
 
 solicitudes_bp = Blueprint("solicitudes", __name__)
 
@@ -15,88 +16,69 @@ def parse_fecha(nombre_campo):
     valor = request.form.get(nombre_campo)
     return datetime.strptime(valor, "%Y-%m-%d").date() if valor else None
 
-@solicitudes_bp.route("/solicitud/<int:solicitud_id>/editar", methods=["GET", "POST"])
-@login_required
-def editar_solicitud(solicitud_id):
-    solicitud = SolicitudSubvencion.query.get_or_404(solicitud_id)
 
-    estados_bloqueados = ["concedida", "denegada", "no_solicitada"]
-    readonly = solicitud.estado.value in estados_bloqueados
-
-    if request.method == "POST" and not readonly:
-        solicitud.expediente_opensea = request.form.get("expediente_opensea")
-        solicitud.expediente_subvencion = request.form.get("expediente_subvencion")
-        solicitud.entidad_id = request.form.get("entidad_id")
-        solicitud.concepto = request.form.get("concepto")
-        solicitud.tipo_fondo = request.form.get("tipo_fondo")
-
-        solicitud.importe_total = parse_float("importe_total")
-        solicitud.importe_subvencionado = parse_float("importe_subvencionado")
-        solicitud.fondos_propios = parse_float("fondos_propios")
-
-        solicitud.doc_inicio_expediente = 'doc_inicio_expediente' in request.form
-        solicitud.doc_informe_tecnico = 'doc_informe_tecnico' in request.form
-        solicitud.doc_propuesta_jgl = 'doc_propuesta_jgl' in request.form
-        solicitud.doc_ficha_captacion = 'doc_ficha_captacion' in request.form
-
-        solicitud.fecha_limite_presentacion = parse_fecha("fecha_limite_presentacion")
-        solicitud.fecha_presentacion_solicitud = parse_fecha("fecha_presentacion_solicitud")
-        solicitud.fecha_resolucion_provisional = parse_fecha("fecha_resolucion_provisional")
-        solicitud.fecha_resolucion_definitiva = parse_fecha("fecha_resolucion_definitiva")
-
-        solicitud.gestor_responsable = request.form.get("gestor_responsable")
-        solicitud.email_gestor = request.form.get("email_gestor")
-
-        solicitud.motivo_no_solicitada = request.form.get("motivo_no_solicitada")
-        solicitud.motivo_denegada = request.form.get("motivo_denegada")
-
-        nuevo_estado_str = request.form.get("estado")
-        if nuevo_estado_str:
-            try:
-                nuevo_estado = EstadoSolicitud(nuevo_estado_str)
-                estado_anterior = solicitud.estado
-                solicitud.estado = nuevo_estado
-
-                validate_solicitud_estado(solicitud, estado_anterior=estado_anterior)
-
-                if nuevo_estado != estado_anterior:
-                    descripcion = f"Estado cambiado de {estado_anterior.value} a {nuevo_estado.value}"
-                    registrar_historial(solicitud, current_user, descripcion)
-
-            except ValueError as e:
-                solicitud.estado = estado_anterior  # Revertir si falla
-                flash(str(e), "danger")
-                return render_template("solicitudes/editar.html", solicitud=solicitud, ObservacionSolicitud=ObservacionSolicitud)
-
-        texto_observacion = request.form.get("observaciones")
-        if texto_observacion:
-            nueva_obs = ObservacionSolicitud(
-                solicitud_id=solicitud.id,
-                usuario_id=current_user.id,
-                texto=texto_observacion,
-                fecha=datetime.utcnow()
-            )
-            db.session.add(nueva_obs)
-
-        db.session.commit()
-        flash("Solicitud actualizada correctamente.", "success")
-        return redirect(url_for("solicitudes.ver_solicitud", solicitud_id=solicitud.id))
-
-    return render_template("solicitudes/editar.html", solicitud=solicitud, ObservacionSolicitud=ObservacionSolicitud)
-
-
+# -------------------- RUTA: LISTADO --------------------
 @solicitudes_bp.route("/solicitudes")
 @login_required
 def lista_solicitudes():
     estado_filtrado = request.args.get("estado")
+    concepto_busqueda = request.args.get("concepto", "").strip().lower()
+    expediente_busqueda = request.args.get("expediente", "").strip().lower()
+    per_page = request.args.get("per_page", type=int, default=10)
+    page = request.args.get("page", type=int, default=1)
+
+    query = SolicitudSubvencion.query
+
     if estado_filtrado:
-        solicitudes = SolicitudSubvencion.query.filter_by(estado=estado_filtrado).all()
-    else:
-        solicitudes = SolicitudSubvencion.query.all()
+        valores_validos = [e.value for e in EstadoSolicitud]
+        if estado_filtrado in valores_validos:
+            estado_enum = EstadoSolicitud(estado_filtrado)
+            query = query.filter(SolicitudSubvencion.estado == estado_enum)
+        else:
+            flash(f"Estado no válido: {estado_filtrado}", "danger")
+            return redirect(url_for("solicitudes.lista_solicitudes"))
 
-    return render_template("solicitudes/lista.html", solicitudes=solicitudes, estado_filtrado=estado_filtrado)
+    if concepto_busqueda:
+        query = query.filter(SolicitudSubvencion.concepto.ilike(f"%{concepto_busqueda}%"))
 
+    if expediente_busqueda:
+        query = query.filter(SolicitudSubvencion.expediente_subvencion.ilike(f"%{expediente_busqueda}%"))
 
+    paginated = query.order_by(SolicitudSubvencion.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
+
+    estadisticas = (
+        db.session.query(SolicitudSubvencion.estado, func.count(SolicitudSubvencion.id))
+        .group_by(SolicitudSubvencion.estado)
+        .all()
+    )
+
+    proximas_solicitudes = (
+    SolicitudSubvencion.query
+    .filter(
+        SolicitudSubvencion.estado == EstadoSolicitud.EN_TRAMITE,
+        SolicitudSubvencion.fecha_limite_presentacion >= date.today(),
+        SolicitudSubvencion.fecha_limite_presentacion != None
+    )
+    .order_by(SolicitudSubvencion.fecha_limite_presentacion.asc())
+    .limit(5)
+    .all()
+
+    )
+
+    return render_template(
+    "solicitudes/lista.html",
+    solicitudes=paginated.items,
+    pagination=paginated,
+    estado_filtrado=estado_filtrado,
+    concepto_busqueda=concepto_busqueda,
+    expediente_busqueda=expediente_busqueda,
+    per_page=per_page,
+    estadisticas=estadisticas,
+    proximas_solicitudes=proximas_solicitudes,
+    today=date.today()
+    )
+
+# -------------------- RUTA: NUEVA --------------------
 @solicitudes_bp.route("/solicitud/nueva", methods=["GET", "POST"])
 @login_required
 def nueva_solicitud():
@@ -105,7 +87,6 @@ def nueva_solicitud():
         motivo_no_solicitada = request.form.get("motivo_no_solicitada")
         fecha_limite = parse_fecha("fecha_limite_presentacion")
 
-        # Validación de campos obligatorios
         if not fecha_limite:
             flash("Debes indicar la fecha límite de presentación.", "danger")
             return render_template("solicitudes/nueva.html")
@@ -127,7 +108,6 @@ def nueva_solicitud():
             estado=EstadoSolicitud(estado) if estado else EstadoSolicitud.EN_TRAMITE
         )
 
-        # Guardamos solo si supera las validaciones
         db.session.add(solicitud)
         db.session.commit()
         flash("Solicitud creada correctamente.", "success")
@@ -136,11 +116,56 @@ def nueva_solicitud():
     return render_template("solicitudes/nueva.html")
 
 
+# -------------------- RUTA: EDITAR --------------------
+@solicitudes_bp.route("/solicitud/<int:solicitud_id>/editar", methods=["GET", "POST"])
+@login_required
+def editar_solicitud(solicitud_id):
+    solicitud = SolicitudSubvencion.query.get_or_404(solicitud_id)
+
+    form = FormularioSolicitud(obj=solicitud)
+    estado_anterior = solicitud.estado
+
+    if form.validate_on_submit():
+        form.populate_obj(solicitud)
+
+        # Validación adicional de estado si es necesario
+        nuevo_estado = EstadoSolicitud(form.estado.data)
+        solicitud.estado = nuevo_estado
+
+        try:
+            validate_solicitud_estado(solicitud, estado_anterior=estado_anterior)
+        except ValueError as e:
+            flash(str(e), "danger")
+            return render_template("solicitudes/editar.html", solicitud=solicitud, form=form)
+
+        # Historial si cambia el estado
+        if nuevo_estado != estado_anterior:
+            descripcion = f"Estado cambiado de {estado_anterior.value} a {nuevo_estado.value}"
+            registrar_historial(solicitud, current_user, descripcion)
+
+        # Registrar observación si viene texto
+        texto_observacion = request.form.get("observaciones")
+        if texto_observacion:
+            nueva_obs = ObservacionSolicitud(
+                solicitud_id=solicitud.id,
+                usuario_id=current_user.id,
+                texto=texto_observacion,
+                fecha=datetime.utcnow()
+            )
+            db.session.add(nueva_obs)
+
+        db.session.commit()
+        flash("Solicitud actualizada correctamente.", "success")
+        return redirect(url_for("solicitudes.ver_solicitud", solicitud_id=solicitud.id))
+
+    return render_template("solicitudes/editar.html", solicitud=solicitud, form=form)
+
+# -------------------- RUTA: VER --------------------
 @solicitudes_bp.route("/solicitud/<int:solicitud_id>")
 @login_required
 def ver_solicitud(solicitud_id):
     solicitud = SolicitudSubvencion.query.get_or_404(solicitud_id)
-    historial = solicitud.historial  # Si tienes relación `historial = db.relationship(...)`
+    historial = solicitud.historial
 
     return render_template(
         "solicitudes/ver.html",
@@ -150,6 +175,7 @@ def ver_solicitud(solicitud_id):
     )
 
 
+# -------------------- RUTA: AÑADIR OBSERVACIÓN --------------------
 @solicitudes_bp.route("/solicitud/<int:solicitud_id>/observacion", methods=["POST"])
 @login_required
 def añadir_observacion(solicitud_id):
@@ -158,7 +184,7 @@ def añadir_observacion(solicitud_id):
 
     if not texto:
         flash("La observación no puede estar vacía.", "warning")
-        return redirect(url_for("solicitudes.ver", solicitud_id=solicitud.id))
+        return redirect(url_for("solicitudes.ver_solicitud", solicitud_id=solicitud.id))
 
     observacion = ObservacionSolicitud(
         solicitud_id=solicitud.id,
@@ -170,5 +196,4 @@ def añadir_observacion(solicitud_id):
     db.session.commit()
 
     flash("Observación añadida correctamente.", "success")
-    return redirect(url_for("solicitudes.ver", solicitud_id=solicitud.id))
-
+    return redirect(url_for("solicitudes.ver_solicitud", solicitud_id=solicitud.id))

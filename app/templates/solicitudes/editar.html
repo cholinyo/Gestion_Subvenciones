@@ -1,247 +1,252 @@
 {% extends "base.html" %}
+
 {% block content %}
-<div class="container mt-4">
-  <h2>Editar Solicitud #{{ solicitud.concepto }}</h2>
+<h2 class="mb-4">
+  ✏️ Editar Solicitud
+  <span class="text-primary">#{{ solicitud.concepto or '—' }}</span>
+</h2>
 
-  {% if solicitud.bloqueada %}
-  <div class="alert alert-warning d-inline-flex align-items-center" role="alert">
-    <span class="badge bg-warning text-dark me-2">Bloqueada</span>
-    Esta solicitud no se puede modificar porque está en estado <strong>{{ solicitud.estado.name|replace('_', ' ')|capitalize }}</strong>.
-  </div>
-  {% endif %}
-
-  <form method="POST" action="{{ url_for('solicitudes.editar_solicitud', solicitud_id=solicitud.id) }}">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    {% for category, message in messages %}
-    <div class="alert alert-{{ category }}">{{ message }}</div>
-    {% endfor %}
-    {% endif %}
-    {% endwith %}
-
-    {% set bloqueado = solicitud.bloqueada %}
-
-    <!-- Datos generales -->
-    <h4 class="mt-4"><i class="bi bi-info-circle-fill me-2"></i>Datos generales</h4>
-    <div class="card p-3 shadow-sm border-start border-4 border-primary-subtle mb-4">
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          <label>Expediente OpenSea</label>
-          <input type="text" class="form-control" name="expediente_opensea" value="{{ solicitud.expediente_opensea }}" {% if bloqueado %}readonly disabled{% endif %}>
-        </div>
-
-        <div class="col-md-6 mb-3">
-          <label>Expediente Subvención</label>
-          <input type="text" class="form-control" name="expediente_subvencion" value="{{ solicitud.expediente_subvencion }}" {% if bloqueado %}readonly disabled{% endif %}>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="col-md-4 mb-3">
-          <label>Entidad ID</label>
-          <input type="number" class="form-control" name="entidad_id" value="{{ solicitud.entidad_id }}" {% if bloqueado %}readonly disabled{% endif %}>
-        </div>
-        <div class="col-md-8 mb-3">
-          <label>Concepto</label>
-          <input type="text" class="form-control" name="concepto" value="{{ solicitud.concepto }}" {% if bloqueado %}readonly disabled{% endif %}>
-        </div>
-      </div>
-
-      <div class="mb-3">
-        <label>Tipo de Fondo</label>
-        <select class="form-select" name="tipo_fondo" {% if bloqueado %}disabled{% endif %}>
-          {% for tipo in ['Europeo', 'Nacional', 'Autonómico', 'Provincial', 'Otros'] %}
-          <option value="{{ tipo }}" {% if solicitud.tipo_fondo==tipo %}selected{% endif %}>{{ tipo }}</option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <div class="mb-3">
-        <label>Estado</label>
-        <select name="estado" id="estado" class="form-control" {% if bloqueado %}disabled{% endif %}>
-          {% for valor, label in {
-          'en_tramite': 'En tramitación',
-          'no_solicitada': 'No solicitada',
-          'solicitada': 'Solicitada',
-          'alegaciones': 'Alegaciones/Subsanación',
-          'concedida_provisional': 'Concedida provisionalmente',
-          'concedida': 'Concedida',
-          'denegada': 'Denegada'
-          }.items() %}
-          <option value="{{ valor }}" {% if solicitud.estado.value==valor %} selected {% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-      </div>
-    </div>
-
-<!-- Fechas clave -->
-<h4 class="mt-4"><i class="bi bi-calendar-event me-2 text-danger"></i>Fechas clave</h4>
-<div class="card p-3 shadow-sm border-start border-4 border-danger-subtle mb-4">
-  <div class="row">
-    <div class="col-md-4 mb-3">
-      <label>Fecha límite de presentación</label>
-      <input type="date" class="form-control" name="fecha_limite_presentacion" value="{{ solicitud.fecha_limite_presentacion.strftime('%Y-%m-%d') if solicitud.fecha_limite_presentacion else '' }}" {% if bloqueado %}readonly disabled{% endif %}>
-    </div>
-    <div class="col-md-4 mb-3">
-      <label>Fecha Presentación</label>
-      <input type="date" class="form-control" name="fecha_presentacion_solicitud" value="{{ solicitud.fecha_presentacion_solicitud }}" {% if bloqueado %}readonly disabled{% endif %}>
-    </div>
-    <div class="col-md-4 mb-3">
-      <label>Fecha Resolución Provisional</label>
-      <input type="date" class="form-control" name="fecha_resolucion_provisional" value="{{ solicitud.fecha_resolucion_provisional }}" {% if bloqueado %}readonly disabled{% endif %}>
-    </div>
-    <div class="col-md-4 mb-3">
-      <label>Fecha Resolución Definitiva</label>
-      <input type="date" class="form-control" name="fecha_resolucion_definitiva" value="{{ solicitud.fecha_resolucion_definitiva }}" {% if bloqueado %}readonly disabled{% endif %}>
-    </div>
-  </div>
-</div>
-
-
-<h4 class="mt-4"><i class="bi bi-currency-euro me-2 text-success"></i>Información económica</h4>
-<div class="card p-3 shadow-sm border-start border-4 border-success-subtle mb-4">
-  <div class="row">
-    <div class="col-md-4 mb-3">
-      <label>Importe Total</label>
-      <input type="number" step="0.01" class="form-control" name="importe_total" value="{{ solicitud.importe_total }}" {% if bloqueado %}readonly disabled{% endif %}>
-    </div>
-    <div class="col-md-4 mb-3">
-      <label>Importe Subvencionado</label>
-      <input type="number" step="0.01" class="form-control" name="importe_subvencionado" value="{{ solicitud.importe_subvencionado }}" {% if bloqueado %}readonly disabled{% endif %}>
-    </div>
-    <div class="col-md-4 mb-3">
-      <label>Fondos Propios</label>
-      <input type="number" step="0.01" class="form-control" name="fondos_propios" value="{{ solicitud.fondos_propios }}" {% if bloqueado %}readonly disabled{% endif %}>
-    </div>
-  </div>
-</div>
-
-<!-- Documentación requerida -->
-<h4 class="mt-4"><i class="bi bi-file-earmark-text me-2 text-warning"></i>Documentación requerida</h4>
-<div class="card p-3 shadow-sm border-start border-4 border-warning-subtle mb-4">
-  <div class="form-check">
-    <input class="form-check-input" type="checkbox" name="doc_inicio_expediente" {% if solicitud.doc_inicio_expediente %}checked{% endif %} {% if bloqueado %}disabled{% endif %}>
-    <label class="form-check-label">Doc. Inicio Expediente</label>
-  </div>
-  <div class="form-check">
-    <input class="form-check-input" type="checkbox" name="doc_informe_tecnico" {% if solicitud.doc_informe_tecnico %}checked{% endif %} {% if bloqueado %}disabled{% endif %}>
-    <label class="form-check-label">Doc. Informe Técnico</label>
-  </div>
-  <div class="form-check">
-    <input class="form-check-input" type="checkbox" name="doc_propuesta_jgl" {% if solicitud.doc_propuesta_jgl %}checked{% endif %} {% if bloqueado %}disabled{% endif %}>
-    <label class="form-check-label">Doc. Propuesta JGL</label>
-  </div>
-  <div class="form-check mb-3">
-    <input class="form-check-input" type="checkbox" name="doc_ficha_captacion" {% if solicitud.doc_ficha_captacion %}checked{% endif %} {% if bloqueado %}disabled{% endif %}>
-    <label class="form-check-label">Doc. Ficha Captación</label>
-  </div>
-</div>
-
-<!-- Gestión -->
-<h4 class="mt-4"><i class="bi bi-person-lines-fill me-2 text-info"></i>Gestión</h4>
-<div class="card p-3 shadow-sm border-start border-4 border-info-subtle mb-4">
-  <div class="mb-3">
-    <label>Motivo no solicitada</label>
-    <textarea class="form-control" name="motivo_no_solicitada" id="motivo_no_solicitada" {% if bloqueado %}readonly disabled{% endif %}>{{ solicitud.motivo_no_solicitada }}</textarea>
-  </div>
-  <div class="mb-3">
-    <label>Motivo denegada</label>
-    <textarea class="form-control" name="motivo_denegada" id="motivo_denegada" {% if bloqueado %}readonly disabled{% endif %}>{{ solicitud.motivo_denegada }}</textarea>
-  </div>
-  <div class="mb-3">
-    <label>Gestor Responsable</label>
-    <input type="text" class="form-control" name="gestor_responsable" value="{{ solicitud.gestor_responsable }}" {% if bloqueado %}readonly disabled{% endif %}>
-  </div>
-  <div class="mb-3">
-    <label>Email del Gestor</label>
-    <input type="email" class="form-control" name="email_gestor" value="{{ solicitud.email_gestor }}" {% if bloqueado %}readonly disabled{% endif %}>
-  </div>
-</div>
-
-<!-- Observaciones -->
-<div class="mb-3">
-  <label for="observaciones" class="form-label">Añadir observación</label>
-  <textarea class="form-control" name="observaciones" rows="3" {% if bloqueado %}readonly disabled{% endif %}></textarea>
-</div>
-
-<!-- Historial de observaciones -->
-{% if solicitud.observaciones %}
-<hr>
-<h4><i class="bi bi-chat-dots me-2 text-secondary"></i>Historial de observaciones</h4>
-<div class="card p-3 shadow-sm border-start border-4 border-secondary-subtle mb-4">
-  <ul class="list-group list-group-flush">
-    {% for observacion in solicitud.observaciones.order_by(ObservacionSolicitud.fecha.desc()).all() %}
-      <li class="list-group-item">
-        <strong>{{ observacion.fecha.strftime('%d/%m/%Y %H:%M') }}</strong> - <em>{{ observacion.usuario.username }}</em>: {{ observacion.texto }}
-      </li>
-    {% else %}
-      <li class="list-group-item">No hay observaciones todavía.</li>
-    {% endfor %}
-  </ul>
+<!-- Alerta resumen de errores -->
+{% if form.errors %}
+<div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
+  <i class="bi bi-exclamation-triangle-fill"></i>
+  Hay errores en {{ form.errors|length }} campos. Por favor, revisa los datos.
 </div>
 {% endif %}
 
-<!-- Historial completo de modificaciones -->
-<h4 class="mt-5"><i class="bi bi-journal-text me-2 text-muted"></i>Historial completo de modificaciones</h4>
-<div class="card p-3 shadow-sm border-start border-4 border-muted-subtle mb-4">
-  <ul class="list-group list-group-flush">
-    {% for cambio in solicitud.historial|sort(attribute='fecha', reverse=True) %}
-      <li class="list-group-item d-flex justify-content-between align-items-center">
-        <span>{{ cambio.descripcion }}</span>
-        <small class="text-muted">{{ cambio.fecha.strftime('%d/%m/%Y %H:%M') }}</small>
-      </li>
-    {% else %}
-      <li class="list-group-item">No hay modificaciones registradas.</li>
-    {% endfor %}
-  </ul>
-</div>
+<form method="post" action="{{ url_for('solicitudes.editar_solicitud', solicitud_id=solicitud.id) }}">
+  {{ form.hidden_tag() }}
 
-<div class="mt-4">
-  <button type="submit" class="btn btn-success" {% if bloqueado %}disabled{% endif %}>Guardar Cambios</button>
-  <a href="{{ url_for('solicitudes.lista_solicitudes') }}" class="btn btn-secondary">Cancelar</a>
-</div>
+  <!-- Estado y botones -->
+  <div class="d-flex justify-content-between align-items-center flex-wrap mb-4">
+    <span class="badge bg-primary">Editando solicitud</span>
 
-</div>
+    <div class="d-flex gap-2 mt-2 mt-md-0">
+      <a href="{{ url_for('solicitudes.lista_solicitudes') }}" class="btn btn-secondary" data-bs-toggle="tooltip"
+        title="Cancelar y volver a la lista">← Cancelar</a>
+      <button type="submit" class="btn btn-success" data-bs-toggle="tooltip" title="Guardar cambios">💾 Guardar</button>
+    </div>
+  </div>
 
+  <!-- Datos generales -->
+  <div class="card p-4 mb-4 shadow-sm border-start border-4 border-primary-subtle">
+    <h4 class="mb-3"><i class="bi bi-info-circle-fill me-2"></i>Datos generales</h4>
+    <div class="row g-3">
+      <div class="col-md-6">
+        {{ form.expediente_opensea.label(class="form-label") }}
+        {{ form.expediente_opensea(class="form-control" + (" is-invalid" if form.expediente_opensea.errors else "")) }}
+        {% for error in form.expediente_opensea.errors %}
+        <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="col-md-6">
+        {{ form.expediente_subvencion.label(class="form-label") }}
+        {{ form.expediente_subvencion(class="form-control" + (" is-invalid" if form.expediente_subvencion.errors else
+        "")) }}
+        {% for error in form.expediente_subvencion.errors %}
+        <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="col-md-6">
+        {{ form.entidad_id.label(class="form-label") }}
+        {{ form.entidad_id(class="form-control" + (" is-invalid" if form.entidad_id.errors else "")) }}
+        {% for error in form.entidad_id.errors %}
+        <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="col-md-6">
+        {{ form.concepto.label(class="form-label") }}
+        {{ form.concepto(class="form-control" + (" is-invalid" if form.concepto.errors else "")) }}
+        {% for error in form.concepto.errors %}
+        <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="col-md-6">
+        {{ form.tipo_fondo.label(class="form-label") }}
+        {{ form.tipo_fondo(class="form-select" + (" is-invalid" if form.tipo_fondo.errors else "")) }}
+        {% for error in form.tipo_fondo.errors %}
+        <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <!-- Estado con radios -->
+      <div class="col-md-6">
+        <label class="form-label">Estado:</label>
+        <div class="d-flex flex-wrap gap-3">
+          {% for value, label in [
+          ('en_tramite', 'En trámite'),
+          ('no_solicitada', 'No solicitada'),
+          ('solicitada', 'Solicitada'),
+          ('alegaciones', 'Alegaciones'),
+          ('concedida_provisional', 'Concedida provisional'),
+          ('concedida', 'Concedida'),
+          ('denegada', 'Denegada')
+          ] %}
+          <div class="form-check">
+            <input class="form-check-input {% if form.estado.errors %}is-invalid{% endif %}" type="radio"
+              name="{{ form.estado.name }}" id="estado_{{ value }}" value="{{ value }}" {% if form.estado.data==value
+              %}checked{% endif %}>
+            <label class="form-check-label" for="estado_{{ value }}">
+              {{ label }}
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+        {% for error in form.estado.errors %}
+        <div class="invalid-feedback d-block">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Información económica -->
+  <div class="card p-4 mb-4 shadow-sm border-start border-4 border-primary-subtle">
+    <h4 class="mb-3"><i class="bi bi-cash-stack me-2"></i>Información económica</h4>
+    <div class="row g-3">
+      <div class="col-md-4">
+        {{ form.presupuesto.label(class="form-label") }}
+        {{ form.presupuesto(class="form-control" + (" is-invalid" if form.presupuesto.errors else "")) }}
+        {% for error in form.presupuesto.errors %}
+        <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+      <div class="col-md-4">
+        {{ form.subvencion_solicitada.label(class="form-label") }}
+        {{ form.subvencion_solicitada(class="form-control" + (" is-invalid" if form.subvencion_solicitada.errors else
+        "")) }}
+        {% for error in form.subvencion_solicitada.errors %}
+        <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+      <div class="col-md-4">
+        {{ form.subvencion_concedida.label(class="form-label") }}
+        {{ form.subvencion_concedida(class="form-control" + (" is-invalid" if form.subvencion_concedida.errors else ""))
+        }}
+        {% for error in form.subvencion_concedida.errors %}
+        <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Fechas clave -->
+  <div class="card p-4 mb-4 shadow-sm border-start border-4 border-success-subtle">
+    <h4 class="mb-3"><i class="bi bi-calendar-event me-2"></i>Fechas clave</h4>
+    <div class="row g-3">
+      <div class="col-md-6">
+        {{ form.fecha_limite_presentacion.label(class="form-label") }}
+        {{ form.fecha_limite_presentacion(class="form-control" + (" is-invalid" if form.fecha_limite_presentacion.errors
+        else "")) }}
+        {% for error in form.fecha_limite_presentacion.errors %}
+        <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+      <div class="col-md-6">
+        {{ form.fecha_presentacion_solicitud.label(class="form-label") }}
+        {{ form.fecha_presentacion_solicitud(class="form-control" + (" is-invalid" if
+        form.fecha_presentacion_solicitud.errors else "")) }}
+        {% for error in form.fecha_presentacion_solicitud.errors %}
+        <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+      <div class="col-md-6">
+        {{ form.fecha_resolucion_provisional.label(class="form-label") }}
+        {{ form.fecha_resolucion_provisional(class="form-control" + (" is-invalid" if
+        form.fecha_resolucion_provisional.errors else "")) }}
+        {% for error in form.fecha_resolucion_provisional.errors %}
+        <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+      <div class="col-md-6">
+        {{ form.fecha_resolucion_definitiva.label(class="form-label") }}
+        {{ form.fecha_resolucion_definitiva(class="form-control" + (" is-invalid" if
+        form.fecha_resolucion_definitiva.errors else "")) }}
+        {% for error in form.fecha_resolucion_definitiva.errors %}
+        <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Documentación requerida -->
+  <div class="card p-4 mb-4 shadow-sm border-start border-4 border-warning-subtle">
+    <h4 class="mb-3"><i class="bi bi-file-earmark-text me-2 text-warning"></i>Documentación requerida</h4>
+    <div class="row g-3">
+      <div class="col-md-3">
+        {{ form.doc_inicio_expediente.label(class="form-label") }}
+        {{ form.doc_inicio_expediente(class="form-check-input") }}
+      </div>
+      <div class="col-md-3">
+        {{ form.doc_informe_tecnico.label(class="form-label") }}
+        {{ form.doc_informe_tecnico(class="form-check-input") }}
+      </div>
+      <div class="col-md-3">
+        {{ form.doc_propuesta_jgl.label(class="form-label") }}
+        {{ form.doc_propuesta_jgl(class="form-check-input") }}
+      </div>
+      <div class="col-md-3">
+        {{ form.doc_ficha_captacion.label(class="form-label") }}
+        {{ form.doc_ficha_captacion(class="form-check-input") }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Gestión -->
+  <div class="card p-4 mb-4 shadow-sm border-start border-4 border-info-subtle">
+    <h4 class="mb-3"><i class="bi bi-person-lines-fill me-2"></i>Gestión</h4>
+    <div class="row g-3">
+      {% if solicitud.estado.value == 'no_solicitada' %}
+      <div class="col-12">
+        {{ form.motivo_no_solicitada.label(class="form-label") }}
+        {{ form.motivo_no_solicitada(class="form-control" + (" is-invalid" if form.motivo_no_solicitada.errors else ""))
+        }}
+        {% for error in form.motivo_no_solicitada.errors %}
+        <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if solicitud.estado.value == 'denegada' %}
+      <div class="col-12">
+        {{ form.motivo_denegada.label(class="form-label") }}
+        {{ form.motivo_denegada(class="form-control" + (" is-invalid" if form.motivo_denegada.errors else "")) }}
+        {% for error in form.motivo_denegada.errors %}
+        <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      <div class="col-md-6">
+        {{ form.gestor_responsable.label(class="form-label") }}
+        {{ form.gestor_responsable(class="form-control" + (" is-invalid" if form.gestor_responsable.errors else "")) }}
+        {% for error in form.gestor_responsable.errors %}
+        <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+      <div class="col-md-6">
+        {{ form.email_gestor.label(class="form-label") }}
+        {{ form.email_gestor(class="form-control" + (" is-invalid" if form.email_gestor.errors else "")) }}
+        {% for error in form.email_gestor.errors %}
+        <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+</form>
+{% endblock %}  {# Cierra el bloque 'content' #}
+
+{% block scripts %}
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const estadoSelect = document.getElementById("estado");
-    const motivoNoSolicitada = document.getElementById("motivo_no_solicitada");
-    const motivoDenegada = document.getElementById("motivo_denegada");
-    const form = document.querySelector("form");
-
-    function actualizarCamposSegunEstado() {
-      const estado = estadoSelect.value;
-
-      if (estado === "no_solicitada") {
-        motivoNoSolicitada.removeAttribute("disabled");
-        motivoNoSolicitada.setAttribute("required", "required");
-      } else {
-        motivoNoSolicitada.setAttribute("disabled", "disabled");
-        motivoNoSolicitada.removeAttribute("required");
-      }
-
-      if (estado === "denegada") {
-        motivoDenegada.removeAttribute("disabled");
-        motivoDenegada.setAttribute("required", "required");
-      } else {
-        motivoDenegada.setAttribute("disabled", "disabled");
-        motivoDenegada.removeAttribute("required");
-      }
+  document.addEventListener('DOMContentLoaded', function () {
+    const firstInvalid = document.querySelector('.is-invalid');
+    if (firstInvalid) {
+      firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      firstInvalid.focus();
     }
-
-    if (estadoSelect) {
-      estadoSelect.addEventListener("change", actualizarCamposSegunEstado);
-      actualizarCamposSegunEstado();
-    }
-
-    form.addEventListener("submit", function (e) {
-      const confirmar = confirm("¿Estás seguro de que deseas guardar los cambios?");
-      if (!confirmar) {
-        e.preventDefault();
-      }
-    });
   });
 </script>
-</div>
 {% endblock %}

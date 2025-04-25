@@ -1,103 +1,196 @@
 {% extends "base.html" %}
+
 {% block content %}
-<div class="container mt-4">
+{% set icono_estado = {
+  'en_tramite': '📝',
+  'no_solicitada': '📂',
+  'solicitada': '📄',
+  'alegaciones': '📢',
+  'concedida_provisional': '🔖',
+  'concedida': '✅',
+  'denegada': '❌'
+}[solicitud.estado.value] %}
 
-  <!-- Estado y título -->
-  <h2 class="mb-3">Ver Solicitud <span class="text-primary">#{{ solicitud.concepto or '—' or '—' }}</span></h2>
-  {% set estado_color = {
-    'en_tramite': 'bg-light text-dark border',
-    'no_solicitada': 'bg-dark text-white',
-    'solicitada': 'bg-primary',
-    'alegaciones': 'bg-purple text-white',
-    'concedida_provisional': 'bg-teal text-white',
-    'concedida': 'bg-success',
-    'denegada': 'bg-danger'
-  }[solicitud.estado.value] %}
-  <div class="mb-4">
-    <span class="badge {{ estado_color }}">Estado actual: {{ solicitud.estado.name|replace('_', ' ')|capitalize }}</span>
+<h2 class="mb-3">
+  {{ icono_estado }} Ver Solicitud 
+  <span class="text-primary">#{{ solicitud.concepto or '—' }}</span>
+</h2>
+
+{# Alerta de información incompleta #}
+{% set errores = [] %}
+{% if solicitud.estado.value == 'no_solicitada' and not solicitud.motivo_no_solicitada %}
+  {% set _ = errores.append('Falta el motivo de No Solicitada.') %}
+{% endif %}
+{% if solicitud.estado.value == 'denegada' and not solicitud.motivo_denegada %}
+  {% set _ = errores.append('Falta el motivo de Denegación.') %}
+{% endif %}
+{% if errores %}
+  <div class="alert alert-danger d-flex flex-column gap-2" role="alert">
+    <div class="d-flex align-items-center gap-2 mb-2">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <strong>Información obligatoria pendiente:</strong>
+    </div>
+    <ul class="mb-0">
+      {% for error in errores %}
+        <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
   </div>
+{% endif %}
 
-  <!-- Datos generales -->
-  <h4 class="mt-4"><i class="bi bi-info-circle-fill me-2"></i>Datos generales</h4>
-  <div class="card p-3 shadow-sm border-start border-4 border-primary-subtle mb-4">
-    <dl class="row">
-      <dt class="col-sm-3">Expediente OpenSea</dt><dd class="col-sm-9">{{ solicitud.expediente_opensea if solicitud.expediente_opensea is not none else '—' }}</dd>
-      <dt class="col-sm-3">Expediente Subvención</dt><dd class="col-sm-9">{{ solicitud.expediente_subvencion if solicitud.expediente_subvencion is not none else '—' }}</dd>
-      <dt class="col-sm-3">Entidad ID</dt><dd class="col-sm-9">{{ solicitud.entidad_id if solicitud.entidad_id is not none else '—' }}</dd>
-      <dt class="col-sm-3">Concepto</dt><dd class="col-sm-9">{{ solicitud.concepto }}</dd>
-      <dt class="col-sm-3">Tipo de Fondo</dt><dd class="col-sm-9">{{ solicitud.tipo_fondo }}</dd>
-      <dt class="col-sm-3">Estado</dt><dd class="col-sm-9">{{ solicitud.estado.name|replace('_', ' ')|capitalize }}</dd>
-          {% if solicitud.observaciones %}
-      
-      {% endif %}
-    </dl>
+{% set estado_color = {
+  'en_tramite': 'bg-light text-dark border',
+  'no_solicitada': 'bg-dark text-white',
+  'solicitada': 'bg-primary',
+  'alegaciones': 'bg-purple text-white',
+  'concedida_provisional': 'bg-teal text-white',
+  'concedida': 'bg-success',
+  'denegada': 'bg-danger'
+}[solicitud.estado.value] %}
+
+<!-- Estado y botones alineados -->
+<div class="d-flex justify-content-between align-items-center flex-wrap mb-4">
+  <span class="badge {{ estado_color }}">
+    Estado actual: {{ solicitud.estado.name|replace('_', ' ')|capitalize }}
+  </span>
+
+  <div class="d-flex gap-2 mt-2 mt-md-0">
+    <a href="{{ url_for('solicitudes.lista_solicitudes') }}" class="btn btn-secondary" data-bs-toggle="tooltip" title="Volver a la lista">← Volver a la lista</a>
+
+    {% if solicitud.estado.value not in ['denegada', 'concedida', 'no_solicitada'] %}
+      <a href="{{ url_for('solicitudes.editar_solicitud', solicitud_id=solicitud.id) }}" class="btn btn-warning" data-bs-toggle="tooltip" title="Editar esta solicitud">✏️ Editar esta solicitud</a>
+    {% endif %}
+
+    <button class="btn btn-outline-primary" onclick="window.print()" data-bs-toggle="tooltip" title="Imprimir esta página">🖨️ Imprimir</button>
   </div>
+</div>
 
+<!-- Datos generales -->
+<h4 class="mt-4"><i class="bi bi-info-circle-fill me-2"></i>Datos generales</h4>
+<div class="card p-3 shadow-sm border-start border-4 border-primary-subtle mb-4">
+  <dl class="row">
+    <dt class="col-sm-3">Expediente OpenSea</dt>
+    <dd class="col-sm-9">{{ solicitud.expediente_opensea if solicitud.expediente_opensea else '—' }}</dd>
+
+    <dt class="col-sm-3">Expediente Subvención</dt>
+    <dd class="col-sm-9">{{ solicitud.expediente_subvencion if solicitud.expediente_subvencion else '—' }}</dd>
+
+    <dt class="col-sm-3">Entidad ID</dt>
+    <dd class="col-sm-9">{{ solicitud.entidad_id if solicitud.entidad_id else '—' }}</dd>
+
+    <dt class="col-sm-3">Concepto</dt>
+    <dd class="col-sm-9">{{ solicitud.concepto }}</dd>
+
+    <dt class="col-sm-3">Tipo de Fondo</dt>
+    <dd class="col-sm-9">{{ solicitud.tipo_fondo }}</dd>
+
+    <dt class="col-sm-3">Estado</dt>
+    <dd class="col-sm-9">{{ solicitud.estado.name|replace('_', ' ')|capitalize }}</dd>
+  </dl>
+</div>
+
+<div class="row">
   <!-- Información económica -->
-  <h4 class="mt-4"><i class="bi bi-currency-euro me-2 text-success"></i>Información económica</h4>
-  <div class="card p-3 shadow-sm border-start border-4 border-success-subtle mb-4">
-    <dl class="row">
-      <dt class="col-sm-3">Importe Total</dt><dd class="col-sm-9">{{ solicitud.importe_total if solicitud.importe_total is not none else '—' }} €</dd>
-      <dt class="col-sm-3">Importe Subvencionado</dt><dd class="col-sm-9">{{ solicitud.importe_subvencionado if solicitud.importe_subvencionado is not none else '—' }} €</dd>
-      <dt class="col-sm-3">Fondos Propios</dt><dd class="col-sm-9">{{ solicitud.fondos_propios if solicitud.fondos_propios is not none else '—' }} €</dd>
-    </dl>
+  <div class="col-md-6 mb-4">
+    <div class="border border-primary bg-white p-3 rounded h-100">
+      <h4 class="mb-3">📊 Información económica</h4>
+      <ul class="list-group">
+        <li class="list-group-item d-flex justify-content-between">
+          <strong>Presupuesto:</strong> <span>{{ solicitud.presupuesto|default('—') }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <strong>Subvención solicitada:</strong> <span>{{ solicitud.subvencion_solicitada|default('—') }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <strong>Subvención concedida:</strong> <span>{{ solicitud.subvencion_concedida|default('—') }}</span>
+        </li>
+      </ul>
+    </div>
   </div>
 
   <!-- Fechas clave -->
-  <h4 class="mt-4"><i class="bi bi-calendar-event me-2 text-danger"></i>Fechas clave</h4>
-  <div class="card p-3 shadow-sm border-start border-4 border-danger-subtle mb-4">
-    <dl class="row">
-      <dt class="col-sm-3">Fecha límite de presentación</dt><dd class="col-sm-9">{{ solicitud.fecha_limite_presentacion if solicitud.fecha_limite_presentacion is not none else '—' }}</dd>
-      <dt class="col-sm-3">Fecha Presentación</dt><dd class="col-sm-9">{{ solicitud.fecha_presentacion_solicitud if solicitud.fecha_presentacion_solicitud is not none else '—' }}</dd>
-      <dt class="col-sm-3">Fecha Resol. Provisional</dt><dd class="col-sm-9">{{ solicitud.fecha_resolucion_provisional if solicitud.fecha_resolucion_provisional is not none else '—' }}</dd>
-      <dt class="col-sm-3">Fecha Resol. Definitiva</dt><dd class="col-sm-9">{{ solicitud.fecha_resolucion_definitiva if solicitud.fecha_resolucion_definitiva is not none else '—' }}</dd>
-    </dl>
+  <div class="col-md-6 mb-4">
+    <div class="border border-success bg-white p-3 rounded h-100">
+      <h4 class="mb-3">📅 Fechas clave</h4>
+      <ul class="list-group">
+        <li class="list-group-item d-flex justify-content-between">
+          <strong data-bs-toggle="tooltip" title="Último día para presentar la solicitud">Fecha límite de presentación:</strong>
+          <span>{{ solicitud.fecha_limite_presentacion.strftime('%d/%m/%Y') if solicitud.fecha_limite_presentacion else '—' }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <strong data-bs-toggle="tooltip" title="Fecha efectiva en la que se presentó la solicitud">Fecha de presentación:</strong>
+          <span>{{ solicitud.fecha_presentacion_solicitud.strftime('%d/%m/%Y') if solicitud.fecha_presentacion_solicitud else '—' }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <strong data-bs-toggle="tooltip" title="Fecha de resolución provisional recibida">Resolución provisional:</strong>
+          <span>{{ solicitud.fecha_resolucion_provisional.strftime('%d/%m/%Y') if solicitud.fecha_resolucion_provisional else '—' }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <strong data-bs-toggle="tooltip" title="Fecha de resolución definitiva recibida">Resolución definitiva:</strong>
+          <span>{{ solicitud.fecha_resolucion_definitiva.strftime('%d/%m/%Y') if solicitud.fecha_resolucion_definitiva else '—' }}</span>
+        </li>
+      </ul>
+    </div>
   </div>
+</div>
 
-  <!-- Documentación requerida -->
-  <h4 class="mt-4"><i class="bi bi-file-earmark-text me-2 text-warning"></i>Documentación requerida</h4>
-  <div class="card p-3 shadow-sm border-start border-4 border-warning-subtle mb-4">
-    <dl class="row">
-      <dt class="col-sm-3">Documentación</dt>
+<!-- Documentación requerida -->
+<h4 class="mt-4"><i class="bi bi-file-earmark-text me-2 text-warning"></i>Documentación requerida</h4>
+<div class="card p-3 shadow-sm border-start border-4 border-warning-subtle mb-4">
+  <dl class="row">
+    <dt class="col-sm-3">Documentación</dt>
+    <dd class="col-sm-9">
+      <ul>
+        <li>Doc. Inicio Expediente: {% if solicitud.doc_inicio_expediente %}Sí{% else %}No{% endif %}</li>
+        <li>Doc. Informe Técnico: {% if solicitud.doc_informe_tecnico %}Sí{% else %}No{% endif %}</li>
+        <li>Doc. Propuesta JGL: {% if solicitud.doc_propuesta_jgl %}Sí{% else %}No{% endif %}</li>
+        <li>Doc. Ficha Captación: {% if solicitud.doc_ficha_captacion %}Sí{% else %}No{% endif %}</li>
+      </ul>
+    </dd>
+  </dl>
+</div>
+
+<!-- Gestión -->
+<h4 class="mt-4"><i class="bi bi-person-lines-fill me-2 text-info"></i>Gestión</h4>
+<div class="card p-3 shadow-sm border-start border-4 border-info-subtle mb-4">
+  <dl class="row">
+    {% if solicitud.estado.value == 'no_solicitada' %}
+      <dt class="col-sm-3">Motivo No Solicitada</dt>
       <dd class="col-sm-9">
-        <ul>
-          <li>Doc. Inicio Expediente: {% if solicitud.doc_inicio_expediente %}Sí{% else %}No{% endif %}</li>
-          <li>Doc. Informe Técnico: {% if solicitud.doc_informe_tecnico %}Sí{% else %}No{% endif %}</li>
-          <li>Doc. Propuesta JGL: {% if solicitud.doc_propuesta_jgl %}Sí{% else %}No{% endif %}</li>
-          <li>Doc. Ficha Captación: {% if solicitud.doc_ficha_captacion %}Sí{% else %}No{% endif %}</li>
-        </ul>
+        {% if solicitud.motivo_no_solicitada %}
+          {{ solicitud.motivo_no_solicitada }}
+        {% else %}
+          <span class="badge bg-danger">⚠️ Motivo pendiente de completar</span>
+        {% endif %}
       </dd>
-    </dl>
-  </div>
+    {% endif %}
 
-  <!-- Gestión -->
-  <h4 class="mt-4"><i class="bi bi-person-lines-fill me-2 text-info"></i>Gestión</h4>
-  <div class="card p-3 shadow-sm border-start border-4 border-info-subtle mb-4">
-    <dl class="row">
-      {% if solicitud.estado.value == 'no_solicitada' %}
-      <dt class="col-sm-3">Motivo No Solicitada</dt>
-      <dd class="col-sm-9">{{ solicitud.motivo_no_solicitada if solicitud.motivo_no_solicitada is not none else '—' }}</dd>
-      {% endif %}
-      {% if solicitud.estado.value == 'no_solicitada' %}
-      <dt class="col-sm-3">Motivo No Solicitada</dt>
-      <dd class="col-sm-9">{{ solicitud.motivo_no_solicitada if solicitud.motivo_no_solicitada is not none else '—' }}</dd>
-      {% endif %}
-      {% if solicitud.estado.value == 'denegada' %}
+    {% if solicitud.estado.value == 'denegada' %}
       <dt class="col-sm-3">Motivo Denegada</dt>
-      <dd class="col-sm-9">{{ solicitud.motivo_denegada if solicitud.motivo_denegada is not none else '—' }}</dd>
-      {% endif %}
-      <dt class="col-sm-3">Gestor Responsable</dt><dd class="col-sm-9">{{ solicitud.gestor_responsable if solicitud.gestor_responsable is not none else '—' }}</dd>
-      <dt class="col-sm-3">Email Gestor</dt><dd class="col-sm-9">{{ solicitud.email_gestor if solicitud.email_gestor is not none else '—' }}</dd>
-    </dl>
-  </div>
+      <dd class="col-sm-9">
+        {% if solicitud.motivo_denegada %}
+          {{ solicitud.motivo_denegada }}
+        {% else %}
+          <span class="badge bg-danger">⚠️ Motivo pendiente de completar</span>
+        {% endif %}
+      </dd>
+    {% endif %}
 
-  <!-- Observaciones -->
+    <dt class="col-sm-3">Gestor Responsable</dt>
+    <dd class="col-sm-9">{{ solicitud.gestor_responsable if solicitud.gestor_responsable else '—' }}</dd>
+
+    <dt class="col-sm-3">Email Gestor</dt>
+    <dd class="col-sm-9">{{ solicitud.email_gestor if solicitud.email_gestor else '—' }}</dd>
+  </dl>
+</div>
+
+<!-- Observaciones -->
 <h4 class="mt-4"><i class="bi bi-chat-dots me-2 text-secondary"></i>Observaciones</h4>
 <div class="card p-3 shadow-sm border-start border-4 border-secondary-subtle mb-4">
   <ul class="list-group list-group-flush">
     {% for observacion in solicitud.observaciones.order_by(ObservacionSolicitud.fecha.desc()).all() %}
       <li class="list-group-item">
-        <strong>{{ observacion.fecha.strftime('%d/%m/%Y %H:%M') }}</strong> - <em>{{ observacion.usuario.username }}</em>: {{ observacion.texto if observacion.texto is not none else '—' }}
+        <strong>{{ observacion.fecha.strftime('%d/%m/%Y %H:%M') }}</strong> - <em>{{ observacion.usuario.username }}</em>: {{ observacion.texto if observacion.texto else '—' }}
       </li>
     {% else %}
       <li class="list-group-item">No hay observaciones registradas.</li>
@@ -105,26 +198,19 @@
   </ul>
 </div>
 
-  <!-- Historial completo de modificaciones -->
-  <h4 class="mt-4"><i class="bi bi-journal-text me-2 text-muted"></i>Historial completo de modificaciones</h4>
-  <div class="card p-3 shadow-sm border-start border-4 border-muted-subtle mb-4">
-    <ul class="list-group list-group-flush">
-      {% for cambio in solicitud.historial|sort(attribute="fecha", reverse=True) %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-          <span>{{ cambio.descripcion }}</span>
-          <small class="text-muted">{{ cambio.fecha.strftime('%d/%m/%Y %H:%M') }}</small>
-        </li>
-      {% else %}
-        <li class="list-group-item">No hay modificaciones registradas.</li>
-      {% endfor %}
-    </ul>
-  </div>
-
-  <!-- Botones -->
-  <div class="mt-4">
-    <a href="{{ url_for('solicitudes.lista_solicitudes') }}" class="btn btn-secondary">Volver a la lista</a>
-    <button class="btn btn-outline-primary" onclick="window.print()">Imprimir</button>
-  </div>
+<!-- Historial completo de modificaciones -->
+<h4 class="mt-4"><i class="bi bi-journal-text me-2 text-muted"></i>Historial completo de modificaciones</h4>
+<div class="card p-3 shadow-sm border-start border-4 border-muted-subtle mb-4">
+  <ul class="list-group list-group-flush">
+    {% for cambio in solicitud.historial|sort(attribute="fecha", reverse=True) %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <span>{{ cambio.descripcion }}</span>
+        <small class="text-muted">{{ cambio.fecha.strftime('%d/%m/%Y %H:%M') }}</small>
+      </li>
+    {% else %}
+      <li class="list-group-item">No hay modificaciones registradas.</li>
+    {% endfor %}
+  </ul>
 </div>
-{% endblock %}
 
+{% endblock %}

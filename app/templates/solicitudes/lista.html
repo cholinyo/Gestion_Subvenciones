@@ -1,55 +1,222 @@
 {% extends "base.html" %}
-{% block content %}
-<h2>Listado de solicitudes</h2>
-<a href="{{ url_for('solicitudes.nueva_solicitud') }}" class="btn btn-success mb-3">
-  + Nueva solicitud
-</a>
-<form method="get" class="mb-3">
-  <label for="estado" class="form-label">Filtrar por estado:</label>
-  <select name="estado" class="form-select" onchange="this.form.submit()">
-    <option value="">-- Todos --</option>
-    {% for estado in ['en_tramite', 'no_solicitada', 'solicitada', 'alegaciones', 'concedida_provisional', 'concedida', 'denegada'] %}
-      <option value="{{ estado }}" {% if estado_filtrado == estado %}selected{% endif %}>{{ estado.replace('_', ' ') | capitalize }}</option>
-    {% endfor %}
-  </select>
-</form>
 
-<table class="table table-bordered table-hover align-middle">
-  <thead class="table-light">
-    <tr>
-      <th>ID</th>
-      <th>Expediente</th>
-      <th>Concepto</th>
-      <th>Entidad</th>
-      <th>Estado</th>
-      <th>Gestor</th>
-      <th>Acciones</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for s in solicitudes %}
-      <tr class="
-          {% if s.estado.value == 'concedida' %}table-success{% endif %}
-          {% if s.estado.value == 'denegada' %}table-danger{% endif %}
-          {% if s.estado.value == 'no_solicitada' %}table-secondary{% endif %}
-          {% if s.estado.value == 'concedida_provisional' %}table-warning{% endif %}
-      ">
-        <td>{{ s.id }}</td>
-        <td>{{ s.expediente_opensea }}</td>
-        <td>{{ s.concepto }}</td>
-        <td>{{ s.entidad_id }}</td>
-        <td>{{ s.estado.value.replace('_', ' ') | capitalize }}</td>
-        <td>{{ s.gestor_responsable or '—' }}</td>
-        <td>
-          <a href="{{ url_for('solicitudes.ver_solicitud', solicitud_id=s.id) }}" class="btn btn-sm btn-outline-primary">Ver</a>
-          {% if s.estado.value not in ['concedida', 'denegada', 'no_solicitada'] %}
-            <a href="{{ url_for('solicitudes.editar_solicitud', solicitud_id=s.id) }}" class="btn btn-sm btn-outline-warning">Editar</a>
+{% block content %}
+<h2>📋 Solicitudes de Subvención</h2>
+<div class="container mt-4">
+
+  {% set badge_colors = {
+    'en_tramite': 'bg-light text-dark border',
+    'no_solicitada': 'bg-dark text-white',
+    'solicitada': 'bg-primary',
+    'alegaciones': 'bg-purple text-white',
+    'concedida_provisional': 'bg-teal text-white',
+    'concedida': 'bg-success',
+    'denegada': 'bg-danger'
+  } %}
+
+  <form method="get" class="row g-3 mb-4 align-items-end">
+    <div class="col-md-2">
+      <label for="estado" class="form-label">Estado:</label>
+      <select id="estado" name="estado" class="form-select">
+        <option value="">-- Todos --</option>
+        {% for est in ['en_tramite', 'no_solicitada', 'solicitada', 'alegaciones', 'concedida_provisional', 'concedida', 'denegada'] %}
+          <option value="{{ est }}" {% if estado_filtrado == est %}selected{% endif %}>
+            {{ est.replace('_', ' ').capitalize() }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-md-3">
+      <label for="concepto" class="form-label">Buscar por Concepto:</label>
+      <input type="text" class="form-control" name="concepto" value="{{ concepto_busqueda or '' }}" placeholder="Ej. Mejora instalaciones deportivas">
+    </div>
+
+    <div class="col-md-3">
+      <label for="expediente" class="form-label">Buscar por Expediente:</label>
+      <input type="text" class="form-control" name="expediente" value="{{ expediente_busqueda or '' }}" placeholder="Ej. SUBV-2025-003">
+    </div>
+
+    <div class="col-md-2 d-grid gap-2">
+      <button type="submit" class="btn btn-primary">🔍 Buscar</button>
+      <a href="{{ url_for('solicitudes.lista_solicitudes') }}" class="btn btn-secondary">🧹 Limpiar</a>
+    </div>
+
+    <div class="col-md-2 d-grid">
+      <a href="{{ url_for('solicitudes.nueva_solicitud') }}" class="btn btn-success">➕ Nueva Solicitud</a>
+    </div>
+  </form>
+
+  <!-- Tabla de resultados -->
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Expediente</th>
+          <th>Concepto</th>
+          <th>Entidad</th>
+          <th>Estado</th>
+          <th>Importe Total</th>
+          <th>Fecha límite de presentación</th>
+          <th>Fecha presentación</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for solicitud in solicitudes %}
+        <tr>
+          <td>{{ solicitud.expediente_subvencion }}</td>
+          <td>{{ solicitud.concepto }}</td>
+          <td>{{ solicitud.entidad_id }}</td>
+          <td>
+            <span class="badge {{ badge_colors[solicitud.estado.value] }}">
+              {{ solicitud.estado.value.replace('_', ' ').capitalize() }}
+            </span>
+          </td>
+          <td>{{ "{:,.2f}".format(solicitud.importe_total or 0) }} €</td>
+          <td> {{ solicitud.fecha_limite_presentacion.strftime('%d/%m/%Y') if solicitud.fecha_limite_presentacion else '—' }}</td>
+          <td> {{ solicitud.fecha_presentacion_solicitud.strftime('%d/%m/%Y') if solicitud.fecha_presentacion_solicitud else '—' }}</td>
+          <td></td>
+          <td class="d-flex gap-2">
+            <!-- Botón Ver con tooltip -->
+            <a href="{{ url_for('solicitudes.ver_solicitud', solicitud_id=solicitud.id) }}"
+               class="btn btn-sm btn-outline-info"
+               data-bs-toggle="tooltip" data-bs-placement="top" title="Ver detalles de la solicitud">
+              👁 Ver
+            </a>
+          
+            <!-- Botón Editar solo si está permitido, también con tooltip -->
+            {% if solicitud.estado.value not in ['denegada', 'concedida', 'no_solicitada'] %}
+              <a href="{{ url_for('solicitudes.editar_solicitud', solicitud_id=solicitud.id) }}"
+                 class="btn btn-sm btn-outline-primary"
+                 data-bs-toggle="tooltip" data-bs-placement="top" title="Editar esta solicitud">
+                ✏️ Editar
+              </a>
+            {% endif %}
+          </td>
+        {% else %}
+        <tr>
+          <td colspan="7" class="text-center">No hay resultados para mostrar.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Controles debajo de la tabla -->
+  <div class="row mt-3 align-items-center">
+    <div class="col-md-4">
+      <form method="get" class="d-flex align-items-center">
+        <input type="hidden" name="estado" value="{{ estado_filtrado }}">
+        <input type="hidden" name="concepto" value="{{ concepto_busqueda }}">
+        <input type="hidden" name="expediente" value="{{ expediente_busqueda }}">
+        <input type="hidden" name="page" value="1">
+
+        <label for="per_page" class="me-2 mb-0">Elementos por página:</label>
+        <select id="per_page" name="per_page" class="form-select w-auto" onchange="this.form.submit()">
+          {% for num in [10, 20, 40, 1000] %}
+            <option value="{{ num }}" {% if per_page == num %}selected{% endif %}>
+              {{ 'Todos' if num == 1000 else num }}
+            </option>
+          {% endfor %}
+        </select>
+      </form>
+    </div>
+
+    <div class="col-md-8">
+      <nav aria-label="Paginación">
+        <ul class="pagination justify-content-end mb-0">
+          {% if pagination.has_prev %}
+            <li class="page-item">
+              <a class="page-link" href="{{ url_for('solicitudes.lista_solicitudes', page=1, per_page=per_page, estado=estado_filtrado, concepto=concepto_busqueda, expediente=expediente_busqueda) }}">« Primero</a>
+            </li>
+            <li class="page-item">
+              <a class="page-link" href="{{ url_for('solicitudes.lista_solicitudes', page=pagination.prev_num, per_page=per_page, estado=estado_filtrado, concepto=concepto_busqueda, expediente=expediente_busqueda) }}">‹ Anterior</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">« Primero</span></li>
+            <li class="page-item disabled"><span class="page-link">‹ Anterior</span></li>
           {% endif %}
-        </td>
-      </tr>
-    {% else %}
-      <tr><td colspan="7" class="text-center text-muted">No hay solicitudes registradas.</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+
+          <li class="page-item active"><span class="page-link">{{ pagination.page }} / {{ pagination.pages }}</span></li>
+
+          {% if pagination.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="{{ url_for('solicitudes.lista_solicitudes', page=pagination.next_num, per_page=per_page, estado=estado_filtrado, concepto=concepto_busqueda, expediente=expediente_busqueda) }}">Siguiente ›</a>
+            </li>
+            <li class="page-item">
+              <a class="page-link" href="{{ url_for('solicitudes.lista_solicitudes', page=pagination.pages, per_page=per_page, estado=estado_filtrado, concepto=concepto_busqueda, expediente=expediente_busqueda) }}">Última »</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">Siguiente ›</span></li>
+            <li class="page-item disabled"><span class="page-link">Última »</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Estadísticas y próximas fechas -->
+  <div class="row mt-5">
+    <div class="col-md-6">
+      <h5>📊 Solicitudes por estado:</h5>
+      <ul class="list-group">
+        {% for estado, total in estadisticas %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            {{ estado.value.replace('_', ' ').capitalize() }}
+            <span class="badge {{ badge_colors[estado.value] }} rounded-pill">{{ total }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="col-md-6">
+      <h5>📅 Próximas fechas de presentación:</h5>
+<ul class="list-group">
+  {% for solicitud in proximas_solicitudes %}
+    {% set fecha_limite = solicitud.fecha_limite_presentacion %}
+    {% set fecha_inicio = solicitud.fecha_presentacion or today %}
+    {% set dias_totales = (fecha_limite - fecha_inicio).days %}
+    {% set dias_restantes = (fecha_limite - today).days %}
+    {% set dias_transcurridos = (today - fecha_inicio).days %}
+    {% set progreso = (dias_transcurridos / dias_totales * 100) if dias_totales > 0 else 100 %}
+    {% set progreso = progreso if progreso <= 100 else 100 %}
+    {% set color = 
+      'bg-success' if dias_restantes > 7 else
+      'bg-warning' if dias_restantes > 2 else
+      'bg-danger' if dias_restantes >= 0 else
+      'bg-secondary'
+    %}
+    <li class="list-group-item">
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div>
+          <strong>{{ fecha_limite.strftime('%d/%m/%Y') }}</strong> — {{ solicitud.concepto }}
+        </div>
+        <a href="{{ url_for('solicitudes.ver_solicitud', solicitud_id=solicitud.id) }}" class="btn btn-sm btn-outline-secondary">👁</a>
+      </div>
+      <div class="progress" style="height: 8px;">
+        <div class="progress-bar {{ color }}" role="progressbar" style="width: {{ progreso|round(0) }}%;" aria-valuenow="{{ progreso|round(0) }}" aria-valuemin="0" aria-valuemax="100"></div>
+      </div>
+      <small class="text-muted">
+        {% if dias_restantes < 0 %}
+          Expirada hace {{ dias_restantes | abs }} días
+        {% else %}
+          {{ dias_restantes }} días restantes
+        {% endif %}
+      </small>
+    </li>
+  {% endfor %}
+</ul>
+</div>
 {% endblock %}
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+  })
+  </script>
+  
